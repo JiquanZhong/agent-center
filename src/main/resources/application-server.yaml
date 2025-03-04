@@ -1,0 +1,12 @@
+server:
+  port: 9091
+  tomcat:
+    connection-timeout: 5000000
+    max-swallow-size: 100MB
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 5000MB
+      max-request-size: 5000MB
+      enabled: true

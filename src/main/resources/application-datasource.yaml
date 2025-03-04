@@ -1,0 +1,21 @@
+postgresql:
+  host: 192.168.60.47
+  master-port: 5432
+  tool_db: gtkj_cjhgz_largemodel
+  username: us_gtkj_cjhgz
+  password: us_gtkj_cjhgz
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${postgresql.host}:${postgresql.master-port}/${postgresql.tool_db}?allowMultiQueries=true
+    username: ${postgresql.username}
+    password: ${postgresql.password}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 300000
+      connection-timeout: 60000
+      max-lifetime: 1800000
+      pool-name: HikariCP
+      connection-test-query: SELECT 1
