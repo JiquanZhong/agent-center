@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
@@ -44,6 +45,114 @@ public class LLMServiceImpl implements LLMService {
         
         // 调用适配器处理请求
         adapter.processStreamingResponse(requestBody, emitter);
+    }
+    
+    @Override
+    public Map<String, Object> stopGenerating(String taskId, Map<String, Object> requestBody) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.stopGenerating(taskId, requestBody);
+    }
+    
+    @Override
+    public Map<String, Object> submitMessageFeedback(String messageId, Map<String, Object> requestBody) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.submitMessageFeedback(messageId, requestBody);
+    }
+    
+    @Override
+    public Map<String, Object> getMessageSuggestions(String messageId, String user) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.getMessageSuggestions(messageId, user);
+    }
+    
+    @Override
+    public Map<String, Object> getMessages(String user, String conversationId, Integer limit) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.getMessages(user, conversationId, limit);
+    }
+    
+    @Override
+    public Map<String, Object> getConversations(String user, String lastId, Integer limit) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.getConversations(user, lastId, limit);
+    }
+    
+    @Override
+    public Map<String, Object> deleteConversation(String conversationId, Map<String, Object> requestBody) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.deleteConversation(conversationId, requestBody);
+    }
+    
+    @Override
+    public Map<String, Object> renameConversation(String conversationId, Map<String, Object> requestBody) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.renameConversation(conversationId, requestBody);
+    }
+    
+    @Override
+    public Map<String, Object> audioToText(MultipartFile audioFile) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.audioToText(audioFile);
+    }
+    
+    @Override
+    public byte[] textToAudio(Map<String, Object> requestBody) {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.textToAudio(requestBody);
+    }
+    
+    @Override
+    public Map<String, Object> getAppInfo() {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.getAppInfo();
+    }
+    
+    @Override
+    public Map<String, Object> getParameters() {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.getParameters();
+    }
+    
+    @Override
+    public Map<String, Object> getMeta() {
+        // 根据配置选择适当的适配器
+        LLMAdapter adapter = getAdapter();
+        
+        // 调用适配器处理请求
+        return adapter.getMeta();
     }
     
     /**

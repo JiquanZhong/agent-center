@@ -9,6 +9,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Ollama适配器实现
@@ -32,6 +34,9 @@ public class OllamaAdapter implements LLMAdapter {
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate;
     private final ExecutorService executorService;
+    
+    // 存储任务ID和对应的连接，用于停止生成
+    private final ConcurrentHashMap<String, HttpURLConnection> activeConnections = new ConcurrentHashMap<>();
 
     @Value("${ollama.api.base-url:http://localhost:11434}")
     private String ollamaBaseUrl;
@@ -41,10 +46,7 @@ public class OllamaAdapter implements LLMAdapter {
         // 转换请求格式为Ollama格式
         Map<String, Object> ollamaRequest = convertToOllamaFormat(requestBody);
         
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        // Ollama通常不需要授权，但如果需要，可以在这里添加
-
+        HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(ollamaRequest, headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(
@@ -56,7 +58,8 @@ public class OllamaAdapter implements LLMAdapter {
         log.info("Response from Ollama API: {}", response.getBody());
 
         // 转换响应格式为统一格式
-        return convertFromOllamaFormat(response.getBody());
+        Map<String, Object> ollamaResponse = response.getBody();
+        return convertFromOllamaFormat(ollamaResponse);
     }
 
     @Override
@@ -76,6 +79,12 @@ public class OllamaAdapter implements LLMAdapter {
                 // Ollama通常不需要授权，但如果需要，可以在这里添加
                 connection.setDoOutput(true);
                 connection.setReadTimeout(0); // 无限超时
+                
+                // 如果请求中包含任务ID，则存储连接以便后续停止
+                String taskId = requestBody.containsKey("task_id") ? requestBody.get("task_id").toString() : null;
+                if (taskId != null) {
+                    activeConnections.put(taskId, connection);
+                }
 
                 // 写入请求体
                 String requestBodyJson = objectMapper.writeValueAsString(ollamaRequest);
@@ -113,6 +122,11 @@ public class OllamaAdapter implements LLMAdapter {
 
                 // 完成
                 emitter.complete();
+                
+                // 清理连接
+                if (taskId != null) {
+                    activeConnections.remove(taskId);
+                }
 
             } catch (Exception e) {
                 try {
@@ -137,6 +151,122 @@ public class OllamaAdapter implements LLMAdapter {
         });
     }
     
+    @Override
+    public Map<String, Object> stopGenerating(String taskId, Map<String, Object> requestBody) {
+        // Ollama没有直接的停止API，我们通过关闭连接来实现
+        HttpURLConnection connection = activeConnections.get(taskId);
+        if (connection != null) {
+            try {
+                connection.disconnect();
+                activeConnections.remove(taskId);
+                log.info("已停止Ollama生成任务: {}", taskId);
+                return Map.of("result", "success");
+            } catch (Exception e) {
+                log.error("停止Ollama生成任务失败: {}", taskId, e);
+                return Map.of("result", "error", "message", e.getMessage());
+            }
+        } else {
+            log.warn("未找到要停止的Ollama生成任务: {}", taskId);
+            return Map.of("result", "not_found", "message", "未找到指定的生成任务");
+        }
+    }
+    
+    @Override
+    public Map<String, Object> submitMessageFeedback(String messageId, Map<String, Object> requestBody) {
+        // Ollama没有反馈API，我们只记录反馈信息
+        log.info("收到消息反馈请求，但Ollama不支持反馈功能。消息ID: {}, 反馈内容: {}", messageId, requestBody);
+        
+        // 返回成功响应，保持与Dify API一致的接口
+        return Map.of("result", "success", "message", "Feedback recorded (Ollama does not support feedback)");
+    }
+    
+    @Override
+    public Map<String, Object> getMessageSuggestions(String messageId, String user) {
+        // Ollama没有建议API，我们返回一些默认建议
+        log.info("收到获取消息建议请求，但Ollama不支持此功能。消息ID: {}, 用户: {}", messageId, user);
+        
+        // 返回一些默认建议，保持与Dify API一致的接口
+        return Map.of(
+            "result", "success",
+            "data", List.of(
+                "请继续",
+                "能详细解释一下吗？",
+                "谢谢，这很有帮助"
+            )
+        );
+    }
+    
+    @Override
+    public Map<String, Object> getMessages(String user, String conversationId, Integer limit) {
+        // Ollama没有消息历史API，我们返回一个空列表
+        log.info("收到获取消息列表请求，但Ollama不支持此功能。用户: {}, 对话ID: {}, 限制: {}", user, conversationId, limit);
+        
+        // 返回一个空列表，保持与Dify API一致的接口
+        return Map.of(
+            "limit", limit != null ? limit : 20,
+            "has_more", false,
+            "data", List.of()
+        );
+    }
+    
+    @Override
+    public Map<String, Object> getConversations(String user, String lastId, Integer limit) {
+        // Ollama没有对话历史API，我们返回一个空列表
+        log.info("收到获取对话列表请求，但Ollama不支持此功能。用户: {}, 最后ID: {}, 限制: {}", user, lastId, limit);
+        
+        // 返回一个空列表，保持与Dify API一致的接口
+        return Map.of(
+            "limit", limit != null ? limit : 20,
+            "has_more", false,
+            "data", List.of()
+        );
+    }
+    
+    @Override
+    public Map<String, Object> deleteConversation(String conversationId, Map<String, Object> requestBody) {
+        // Ollama没有对话管理API，我们只记录请求
+        log.info("收到删除对话请求，但Ollama不支持此功能。对话ID: {}, 请求体: {}", conversationId, requestBody);
+        
+        // 返回成功响应，保持与Dify API一致的接口
+        return Map.of("result", "success");
+    }
+    
+    @Override
+    public Map<String, Object> renameConversation(String conversationId, Map<String, Object> requestBody) {
+        // Ollama没有对话管理API，我们只记录请求
+        log.info("收到重命名对话请求，但Ollama不支持此功能。对话ID: {}, 请求体: {}", conversationId, requestBody);
+        
+        // 返回一个模拟的对话信息，保持与Dify API一致的接口
+        return Map.of(
+            "id", conversationId,
+            "name", requestBody.containsKey("name") ? requestBody.get("name") : "New chat",
+            "inputs", Map.of(),
+            "status", "normal",
+            "introduction", "",
+            "created_at", System.currentTimeMillis() / 1000,
+            "updated_at", System.currentTimeMillis() / 1000
+        );
+    }
+    
+    @Override
+    public Map<String, Object> audioToText(MultipartFile audioFile) {
+        // Ollama没有语音转文本API，我们只记录请求
+        log.info("收到语音转文本请求，但Ollama不支持此功能。文件名: {}, 文件大小: {}", 
+                audioFile.getOriginalFilename(), audioFile.getSize());
+        
+        // 返回一个模拟的转换结果，保持与Dify API一致的接口
+        return Map.of("text", "Ollama does not support audio to text conversion");
+    }
+    
+    @Override
+    public byte[] textToAudio(Map<String, Object> requestBody) {
+        // Ollama没有文本转语音API，我们只记录请求
+        log.info("收到文本转语音请求，但Ollama不支持此功能。请求体: {}", requestBody);
+        
+        // 返回一个空的音频数据
+        return new byte[0];
+    }
+    
     /**
      * 将统一格式的请求转换为Ollama格式
      */
@@ -148,20 +278,48 @@ public class OllamaAdapter implements LLMAdapter {
         
         // 转换消息格式为提示
         if (requestBody.containsKey("inputs")) {
-            List<Map<String, Object>> messages = (List<Map<String, Object>>) requestBody.get("inputs");
+            Object inputsObj = requestBody.get("inputs");
             StringBuilder prompt = new StringBuilder();
             
-            for (Map<String, Object> message : messages) {
-                String role = (String) message.get("role");
-                String content = (String) message.get("content");
-                
-                if ("user".equals(role)) {
-                    prompt.append("User: ").append(content).append("\n");
-                } else if ("assistant".equals(role)) {
-                    prompt.append("Assistant: ").append(content).append("\n");
-                } else if ("system".equals(role)) {
-                    prompt.append("System: ").append(content).append("\n");
+            if (inputsObj instanceof List) {
+                // 处理列表格式的输入
+                List<Map<String, Object>> messages = (List<Map<String, Object>>) inputsObj;
+                for (Map<String, Object> message : messages) {
+                    String role = (String) message.get("role");
+                    String content = (String) message.get("content");
+                    
+                    if ("user".equals(role)) {
+                        prompt.append("User: ").append(content).append("\n");
+                    } else if ("assistant".equals(role)) {
+                        prompt.append("Assistant: ").append(content).append("\n");
+                    } else if ("system".equals(role)) {
+                        prompt.append("System: ").append(content).append("\n");
+                    }
                 }
+            } else if (inputsObj instanceof Map) {
+                // 处理映射格式的输入
+                Map<String, Object> inputsMap = (Map<String, Object>) inputsObj;
+                if (inputsMap.containsKey("messages")) {
+                    List<Map<String, Object>> messages = (List<Map<String, Object>>) inputsMap.get("messages");
+                    for (Map<String, Object> message : messages) {
+                        String role = (String) message.get("role");
+                        String content = (String) message.get("content");
+                        
+                        if ("user".equals(role)) {
+                            prompt.append("User: ").append(content).append("\n");
+                        } else if ("assistant".equals(role)) {
+                            prompt.append("Assistant: ").append(content).append("\n");
+                        } else if ("system".equals(role)) {
+                            prompt.append("System: ").append(content).append("\n");
+                        }
+                    }
+                } else {
+                    // 直接使用输入作为提示
+                    prompt.append(inputsMap.toString());
+                }
+            } else {
+                // 直接使用输入作为提示
+                prompt.append(inputsObj.toString());
             }
             
             ollamaRequest.put("prompt", prompt.toString());
@@ -241,5 +399,84 @@ public class OllamaAdapter implements LLMAdapter {
         unifiedResponse.put("metadata", metadata);
         
         return unifiedResponse;
+    }
+
+    @Override
+    public Map<String, Object> getAppInfo() {
+        // Ollama没有应用信息API，我们只记录请求
+        log.info("收到获取应用信息请求，但Ollama不支持此功能");
+        
+        // 返回一个备用响应，保持与Dify API一致的接口
+        return Map.of(
+            "name", "Ollama App",
+            "description", "Ollama不支持应用信息API，这是一个备用响应",
+            "tags", List.of("ollama")
+        );
+    }
+    
+    @Override
+    public Map<String, Object> getParameters() {
+        // Ollama没有参数信息API，我们只记录请求
+        log.info("收到获取应用参数信息请求，但Ollama不支持此功能");
+        
+        // 返回一个备用响应，保持与Dify API一致的接口
+        Map<String, Object> textInput = new HashMap<>();
+        textInput.put("label", "提示词");
+        textInput.put("variable", "prompt");
+        textInput.put("required", true);
+        textInput.put("max_length", 100);
+        textInput.put("default", "");
+        
+        Map<String, Object> textInputWrapper = new HashMap<>();
+        textInputWrapper.put("text-input", textInput);
+        
+        Map<String, Object> imageUpload = new HashMap<>();
+        imageUpload.put("enabled", true);
+        imageUpload.put("number_limits", 3);
+        imageUpload.put("transfer_methods", List.of("remote_url", "local_file"));
+        
+        Map<String, Object> fileUpload = new HashMap<>();
+        fileUpload.put("image", imageUpload);
+        
+        Map<String, Object> systemParameters = new HashMap<>();
+        systemParameters.put("file_size_limit", 15);
+        systemParameters.put("image_file_size_limit", 10);
+        systemParameters.put("audio_file_size_limit", 50);
+        systemParameters.put("video_file_size_limit", 100);
+        
+        return Map.of(
+            "introduction", "Ollama模型，欢迎使用",
+            "user_input_form", List.of(textInputWrapper),
+            "file_upload", fileUpload,
+            "system_parameters", systemParameters
+        );
+    }
+    
+    @Override
+    public Map<String, Object> getMeta() {
+        // Ollama没有元数据API，我们只记录请求
+        log.info("收到获取应用元数据请求，但Ollama不支持此功能");
+        
+        // 返回一个备用响应，保持与Dify API一致的接口
+        Map<String, Object> apiTool = new HashMap<>();
+        apiTool.put("background", "#252525");
+        apiTool.put("content", "😊");
+        
+        Map<String, Object> toolIcons = new HashMap<>();
+        toolIcons.put("api_tool", apiTool);
+        
+        return Map.of(
+            "tool_icons", toolIcons
+        );
+    }
+
+    /**
+     * 创建请求头
+     */
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        // Ollama通常不需要授权，但如果需要，可以在这里添加
+        return headers;
     }
 } 
