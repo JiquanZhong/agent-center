@@ -44,11 +44,11 @@ public class DifyAdapter implements LLMAdapter {
     @Override
     public Map<String, Object> processBlockingResponse(Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/chat-messages";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -56,7 +56,7 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("处理阻塞响应失败", e);
@@ -131,15 +131,20 @@ public class DifyAdapter implements LLMAdapter {
             }
         });
     }
-    
+
     @Override
     public Map<String, Object> stopGenerating(String taskId, Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/chat-messages/" + taskId + "/stop";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
+        // 如果没有user参数，添加一个默认值
+        if (!requestBody.containsKey("user")) {
+            requestBody.put("user", "undefined");  // 使用适当的用户标识
+        }
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -147,22 +152,22 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("停止生成响应失败", e);
             throw new RuntimeException("停止生成响应失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> submitMessageFeedback(String messageId, Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/messages/" + messageId + "/feedbacks";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -170,22 +175,22 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("提交消息反馈失败", e);
             throw new RuntimeException("提交消息反馈失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> getMessageSuggestions(String messageId, String user) {
         String url = difyBaseUrl + "/v1/messages/" + messageId + "/suggested?user=" + user;
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -193,18 +198,18 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("获取消息建议失败", e);
             throw new RuntimeException("获取消息建议失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> getMessages(String user, String conversationId, Integer limit) {
         String url = difyBaseUrl + "/v1/messages";
-        
+
         // 构建请求参数
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         builder.queryParam("user", user);
@@ -214,11 +219,11 @@ public class DifyAdapter implements LLMAdapter {
         if (limit != null) {
             builder.queryParam("limit", limit);
         }
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     builder.toUriString(),
@@ -226,18 +231,18 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("获取消息列表失败", e);
             throw new RuntimeException("获取消息列表失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> getConversations(String user, String lastId, Integer limit) {
         String url = difyBaseUrl + "/v1/conversations";
-        
+
         // 构建请求参数
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         if (user != null && !user.isEmpty()) {
@@ -249,11 +254,11 @@ public class DifyAdapter implements LLMAdapter {
         if (limit != null) {
             builder.queryParam("limit", limit);
         }
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     builder.toUriString(),
@@ -261,22 +266,22 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("获取对话列表失败", e);
             throw new RuntimeException("获取对话列表失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> deleteConversation(String conversationId, Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/conversations/" + conversationId;
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -284,22 +289,22 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("删除对话失败", e);
             throw new RuntimeException("删除对话失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> renameConversation(String conversationId, Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/conversations/" + conversationId + "/name";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -307,18 +312,18 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("重命名对话失败", e);
             throw new RuntimeException("重命名对话失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> audioToText(MultipartFile audioFile) {
         String url = difyBaseUrl + "/v1/audio-to-text";
-        
+
         try {
             // 创建MultipartFile资源
             ByteArrayResource resource = new ByteArrayResource(audioFile.getBytes()) {
@@ -327,38 +332,38 @@ public class DifyAdapter implements LLMAdapter {
                     return audioFile.getOriginalFilename();
                 }
             };
-            
+
             // 创建MultipartForm请求
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", resource);
-            
+
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            
+
             HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
-            
+
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("语音转文本失败", e);
             throw new RuntimeException("语音转文本失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public byte[] textToAudio(Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/text-to-audio";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-        
+
         try {
             ResponseEntity<byte[]> response = restTemplate.exchange(
                     url,
@@ -366,7 +371,7 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     byte[].class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("文本转语音失败", e);
@@ -377,11 +382,11 @@ public class DifyAdapter implements LLMAdapter {
     @Override
     public Map<String, Object> getAppInfo() {
         String url = difyBaseUrl + "/v1/info";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -389,7 +394,7 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("获取应用信息失败", e);
@@ -400,11 +405,11 @@ public class DifyAdapter implements LLMAdapter {
     @Override
     public Map<String, Object> getParameters() {
         String url = difyBaseUrl + "/v1/parameters";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -412,22 +417,22 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("获取应用参数信息失败", e);
             throw new RuntimeException("获取应用参数信息失败: " + e.getMessage());
         }
     }
-    
+
     @Override
     public Map<String, Object> getMeta() {
         String url = difyBaseUrl + "/v1/meta";
-        
+
         // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        
+
         try {
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
@@ -435,7 +440,7 @@ public class DifyAdapter implements LLMAdapter {
                     entity,
                     Map.class
             );
-            
+
             return response.getBody();
         } catch (Exception e) {
             log.error("获取应用元数据失败", e);

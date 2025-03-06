@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+</head>
+
+<body style="margin: 0px; display: flex; flex-direction: row-reverse;">
+  <iframe id="aiChat" src='./index.html?appId="9bdd4fac-e22e-4bc1-8aae-36c7621f667b"' style="width: 40%;height: 100vh; border: 0.1px solid black;
+    box-sizing: border-box;"></iframe>
+</body>
+<script>
+  const iframe = document.getElementById('aiChat');
+  iframe.onload = function () {
+    // 向子页面发送 userId
+    const userId = 'abc-123';
+    iframe.contentWindow.postMessage({ userId: userId }, '*');
+  };
+</script>
+
+</html>

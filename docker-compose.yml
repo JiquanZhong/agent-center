@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # 微服务应用
+  microservice-ds:
+    image: microservice-ds:1.0
+    container_name: microservice-ds
+    ports:
+      - "9091:9091"
+    volumes:
+      - ./config/java:/app/config
+      - ./log:/app/log
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+    restart: unless-stopped
+    networks:
+      - microservice-network
+
+  # Nginx服务
+  nginx:
+    image: nginx:alpine
+    container_name: microservice-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./web/demo:/usr/share/nginx/html
+      - ./log/nginx:/var/log/nginx
+    command: >
+      /bin/sh -c "
+        echo '=== 检查前端文件是否存在 ===' >> /var/log/nginx/debug.log;
+        ls -la /usr/share/nginx/html >> /var/log/nginx/debug.log 2>&1;
+        if [ ! -f /usr/share/nginx/html/index.html ]; then
+          echo '警告: index.html不存在，创建测试页面' >> /var/log/nginx/debug.log;
+          echo '<html><body><h1>测试页面</h1><p>如果您看到此页面，说明nginx配置正常，但前端文件可能未正确挂载。</p></body></html>' > /usr/share/nginx/html/index.html;
+        fi;
+        echo '=== 检查nginx配置 ===' >> /var/log/nginx/debug.log;
+        nginx -t >> /var/log/nginx/debug.log 2>&1;
+        echo '=== 启动nginx ===' >> /var/log/nginx/debug.log;
+        nginx -g 'daemon off;'
+      "
+    depends_on:
+      - microservice-ds
+    restart: unless-stopped
+    networks:
+      - microservice-network
+
+networks:
+  microservice-network:
+    driver: bridge 
