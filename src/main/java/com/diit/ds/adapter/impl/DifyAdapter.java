@@ -177,6 +177,7 @@ public class DifyAdapter implements LLMAdapter {
             );
 
             return response.getBody();
+
         } catch (Exception e) {
             log.error("提交消息反馈失败", e);
             throw new RuntimeException("提交消息反馈失败: " + e.getMessage());

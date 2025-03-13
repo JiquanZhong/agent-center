@@ -3,6 +3,6 @@ llm:
 
 dify:
   api:
-    base-url: http://192.168.11.205
+    base-url: ${DIFY_URL:http://192.168.11.205}
     chat-agent-token: Bearer app-fcw7GxJACAUbxR4hadDYBH6k
 
