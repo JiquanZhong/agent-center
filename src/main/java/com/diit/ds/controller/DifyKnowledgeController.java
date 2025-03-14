@@ -5,10 +5,11 @@ import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.lang.reflect.Array;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Dify外部知识库API控制器
