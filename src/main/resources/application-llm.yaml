@@ -4,7 +4,7 @@ llm:
 dify:
   api:
     base-url: http://192.168.11.205
-    chat-agent-token: Bearer app-fcw7GxJACAUbxR4hadDYBH6k
+    chat-agent-token: Bearer app-Ug8kHQck7eFWEQ9I3WFcNk7J
 
 rag-flow:
   api:

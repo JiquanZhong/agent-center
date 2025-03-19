@@ -127,4 +127,13 @@ public interface LLMService {
      * @return 元数据信息
      */
     Map<String, Object> getMeta();
+    
+    /**
+     * 上传文件
+     * 
+     * @param file 上传的文件
+     * @param user 用户ID
+     * @return 上传结果
+     */
+    Map<String, Object> uploadFile(MultipartFile file, String user);
 }

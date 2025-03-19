@@ -5,4 +5,5 @@ import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
 
 public interface RAGFlowAPIService {
     RAGFlowKnowledgeResp retrieval(RAGFlowKnowledgeReq req);
+
 }

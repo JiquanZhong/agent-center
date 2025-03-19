@@ -97,6 +97,7 @@ public class DifyAdapter implements LLMAdapter {
                     }
                 } else {
                     // 处理错误
+                    log.error("Response code: {}, message: {}", responseCode, connection.getResponseMessage());
                     Map<String, Object> errorResponse = Map.of(
                             "error", Map.of(
                                     "message", "Error from Dify API: " + responseCode,
@@ -430,22 +431,53 @@ public class DifyAdapter implements LLMAdapter {
     public Map<String, Object> getMeta() {
         String url = difyBaseUrl + "/v1/meta";
 
-        // 发送请求
         HttpHeaders headers = createHeaders();
         HttpEntity<String> entity = new HttpEntity<>(headers);
 
+        ResponseEntity<Map> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                Map.class
+        );
+
+        return response.getBody();
+    }
+
+    @Override
+    public Map<String, Object> uploadFile(MultipartFile file, String user) {
+        String url = difyBaseUrl + "/v1/files/upload";
+
         try {
+            // 创建MultipartFile资源
+            ByteArrayResource resource = new ByteArrayResource(file.getBytes()) {
+                @Override
+                public String getFilename() {
+                    return file.getOriginalFilename();
+                }
+            };
+
+            // 创建MultipartForm请求
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", resource);
+            body.add("user", user);
+
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+            HttpEntity<MultiValueMap<String, Object>> entity = new HttpEntity<>(body, headers);
+
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
-                    HttpMethod.GET,
+                    HttpMethod.POST,
                     entity,
                     Map.class
             );
 
             return response.getBody();
         } catch (Exception e) {
-            log.error("获取应用元数据失败", e);
-            throw new RuntimeException("获取应用元数据失败: " + e.getMessage());
+            log.error("文件上传失败", e);
+            throw new RuntimeException("文件上传失败: " + e.getMessage());
         }
     }
 

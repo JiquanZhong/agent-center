@@ -184,4 +184,17 @@ public class DifyTypeController {
         log.info("获取应用元数据");
         return llmService.getMeta();
     }
+
+    /**
+     * 上传文件
+     * 用于上传图片等文件到系统
+     */
+    @PostMapping("/files/upload")
+    public Map<String, Object> uploadFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("user") String user) {
+        log.info("上传文件，文件名: {}, 文件大小: {}, 用户: {}", file.getOriginalFilename(), file.getSize(), user);
+        return llmService.uploadFile(file, user);
+    }
+
 }

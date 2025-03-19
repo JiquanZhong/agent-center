@@ -469,6 +469,24 @@ public class OllamaAdapter implements LLMAdapter {
             "tool_icons", toolIcons
         );
     }
+    
+    @Override
+    public Map<String, Object> uploadFile(MultipartFile file, String user) {
+        // Ollama没有文件上传API，我们只记录请求
+        log.info("收到文件上传请求，但Ollama不支持此功能。文件名: {}, 用户: {}", 
+                file.getOriginalFilename(), user);
+        
+        // 返回一个备用响应，保持与Dify API一致的接口
+        return Map.of(
+            "id", "file_" + System.currentTimeMillis(),
+            "name", file.getOriginalFilename(),
+            "size", file.getSize(),
+            "mime_type", file.getContentType(),
+            "url", "/mock/file/url",
+            "user", user,
+            "created_at", System.currentTimeMillis() / 1000
+        );
+    }
 
     /**
      * 创建请求头

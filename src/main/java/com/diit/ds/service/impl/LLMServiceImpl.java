@@ -148,11 +148,12 @@ public class LLMServiceImpl implements LLMService {
     
     @Override
     public Map<String, Object> getMeta() {
-        // 根据配置选择适当的适配器
-        LLMAdapter adapter = getAdapter();
-        
-        // 调用适配器处理请求
-        return adapter.getMeta();
+        return getAdapter().getMeta();
+    }
+    
+    @Override
+    public Map<String, Object> uploadFile(MultipartFile file, String user) {
+        return getAdapter().uploadFile(file, user);
     }
     
     /**

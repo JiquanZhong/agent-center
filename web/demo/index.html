@@ -1,78 +1,31 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Document</title>
-  <script>
-    function getAppIdFromCurrentUrl () {
-      // 获取当前页面的查询字符串（即 ? 后面的部分）
-      const queryString = window.location.search;
-      // 如果没有查询字符串，直接返回 null
-      if (!queryString) {
-        return null;
-      }
-      // 去掉开头的 '?'，然后将查询字符串拆分为键值对
-      const queryParams = queryString.substring(1).split('&');
-      // 遍历键值对，查找 appId
-      for (const param of queryParams) {
-        const [key, value] = param.split('=');
-        if (key === 'appId') {
-          // 解码 URL 编码的值（例如 %20 转为空格）
-          return decodeURIComponent(value);
-        }
-      }
-      // 如果没有找到 appId，返回 null
-      return null;
-    }
-  </script>
-</head>
-
-<body style="margin: 0px; display: flex; flex-direction: row-reverse;">
-  <style>
-    #ai-chat {
-      width: 100%;
-      height: 100vh;
-    }
-  </style>
-  <ai-chat id="ai-chat"></ai-chat>
-</body>
-<script src="./config.js"></script>
-<script src="./dist/ai-chat.iife.js"></script>
-<script>
-
-
-  // 示例用法
-  var appId = getAppIdFromCurrentUrl();
-  if (!appId) {
-    alert('未获取正确的appId，请于提供方确认')
-  }
-  var chatMeta = appsConfig.find(function (item) {
-    return item.appId = appId
-  })
-  window.DiitAiChat.register('ai-chat', chatMeta.themeCssUrl)
-  var aiChatElement = document.querySelector('#ai-chat')
-  // 获取组件暴露的方法
-  // aiChatElement.sendChat('调用')
-  // 对组件属性进行设置
-  // 设置 styleSetting 属性为一个对象
-
-  // 监听组件抛出的事件并执行某些操作
-  aiChatElement.addEventListener('ai-chat-close', (e) => {
-    aiChatElement.style.display = 'none'
-  })
-    // 监听来自主页面的消息
-  window.addEventListener('message', function (event) {
-    // 检查消息来源是否可信
-    // if (event.origin !== 'https://parent-domain.com') {
-    //   return;
-    // }
-    // 获取传递的 userId
-    var userId = event.data.userId;
-    chatMeta.chatConfig.apiConfig.user = userId
-    aiChatElement.chatConfig = chatMeta.chatConfig
-  });
-</script>
-
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>后土大模型</title>
+    <script src="./config/serveConfig.js"></script>
+    <script src="./lib/ai-chat.iife.js"></script>
+    <script>
+    </script>
+    <script type="module" crossorigin src="./assets/index-DRmy3_1D.js"></script>
+    <link rel="modulepreload" crossorigin href="./assets/axios-upsvKRUO.js">
+    <link rel="modulepreload" crossorigin href="./assets/@babel-CuAkI3ff.js">
+    <link rel="modulepreload" crossorigin href="./assets/dayjs-DoMtMbyJ.js">
+    <link rel="modulepreload" crossorigin href="./assets/resize-observer-polyfill-B1PUzC5B.js">
+    <link rel="modulepreload" crossorigin href="./assets/@vue-DfSatT6k.js">
+    <link rel="modulepreload" crossorigin href="./assets/@ctrl-3cdSgQbg.js">
+    <link rel="modulepreload" crossorigin href="./assets/@ant-design-ZzcxRr5c.js">
+    <link rel="modulepreload" crossorigin href="./assets/lodash-es-mOee43Rj.js">
+    <link rel="modulepreload" crossorigin href="./assets/vue-types-B67A5qzE.js">
+    <link rel="modulepreload" crossorigin href="./assets/ant-design-vue-Byl92AXY.js">
+    <link rel="modulepreload" crossorigin href="./assets/vue-router-1cM073JS.js">
+    <link rel="modulepreload" crossorigin href="./assets/pinia-BKGl0dOm.js">
+    <link rel="stylesheet" crossorigin href="./assets/ant-design-vue-BNv10xcB.css">
+    <link rel="stylesheet" crossorigin href="./assets/index-DU_UBvEW.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
 </html>

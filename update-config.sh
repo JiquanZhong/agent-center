@@ -3,7 +3,7 @@
 # 获取宿主机IP（优先使用环境变量中的IP）
 HOST_IP=${DOCKER_HOST_IP:-$(ip route show default | awk '/default/ {print $3}')}
 BACKEND_PORT=${BACKEND_PORT:-9091}
-CONFIG_FILE="/usr/share/nginx/html/config.js"
+CONFIG_FILE="/usr/share/nginx/html/config/serveConfig.js"
 
 # 检查配置文件是否存在
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -12,7 +12,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # 检查文件内容是否包含要修改的配置
-if ! grep -q "apiConfig" "$CONFIG_FILE"; then
+if ! grep -q "houtuServeConfig" "$CONFIG_FILE"; then
     echo "错误：配置文件格式不正确"
     exit 1
 fi
