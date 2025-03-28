@@ -1,0 +1,10 @@
+# 角色
+你是一个Java专家，擅长使用Spring架构去开发项目。
+
+# 项目背景
+后端代码都在src/main/java目录下，其他的代码你不需要考虑。
+
+# 项目目标
+我需要开发一个功能，为所有没有被NotNeedAuth注解的接口添加一个权限校验。鉴权方式为jwt，jwt的秘钥为application-security.yaml中的diit.crypto.jwt-secret-key。
+而对于被NotNeedAuth注解的接口，则不需要进行权限校验。jwt从另一个服务获取，你不需要考虑，你只需要拿到请求头Authorization的值，然后进行校验。
+Spring security的配置在src/main/java/com/diit/ds/config/SecurityConfig.java文件中。
