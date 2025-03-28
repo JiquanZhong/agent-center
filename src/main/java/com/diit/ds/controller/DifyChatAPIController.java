@@ -18,7 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/v1")
 @RequiredArgsConstructor
-public class DifyTypeController {
+public class DifyChatAPIController {
 
     private final LLMService llmService;
     

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.diit.ds.mapper.ConversationMapper">
+    <!-- 分页查询会话列表 -->
+    <select id="selectConversationPage" resultType="com.diit.ds.domain.dto.ConversationDTO">
+        SELECT
+        c.id,
+        c.app_id as appId,
+        c.app_model_config_id as appModelConfigId,
+        c.model_provider as modelProvider,
+        c.override_model_configs as overrideModelConfigs,
+        c.model_id as modelId,
+        c.mode,
+        c.name,
+        c.summary,
+        c.inputs,
+        c.introduction,
+        c.system_instruction as systemInstruction,
+        c.system_instruction_tokens as systemInstructionTokens,
+        c.status,
+        c.from_source as fromSource,
+        c.from_end_user_id as fromEndUserId,
+        c.from_account_id as fromAccountId,
+        c.read_at as readAt,
+        c.read_account_id as readAccountId,
+        c.created_at as createdAt,
+        c.updated_at as updatedAt,
+        c.is_deleted as isDeleted,
+        c.invoke_from as invokeFrom,
+        (SELECT count(1) FROM messages m WHERE m.conversation_id = c.id) as dialogueCount,
+        e.session_id as fromEndUserSessionId,
+        c.inputs->>'company' as systemName
+        FROM
+        public.conversations c
+        LEFT JOIN public.end_users e ON c.from_end_user_id = e.id
+        <where>
+            <if test="appId != null">
+                AND c.app_id = #{appId}::uuid
+            </if>
+            <if test="start != null">
+                AND c.created_at >= #{start}
+            </if>
+            <if test="end != null">
+                AND c.created_at &lt;= #{end}
+            </if>
+            <if test="annotationStatus != null and annotationStatus != 'all'">
+                AND c.annotated = #{annotationStatus == 'annotated'}
+            </if>
+            <if test="systemName != null and systemName != ''">
+                AND c.inputs->>'company' LIKE CONCAT('%', #{systemName}, '%')
+            </if>
+            <if test="dialogTitle != null and dialogTitle != ''">
+                AND c.name LIKE CONCAT('%', #{dialogTitle}, '%')
+            </if>
+            AND c.is_deleted = false
+        </where>
+        <choose>
+            <when test="sortBy != null and sortBy.startsWith('-')">
+                ORDER BY c.${sortBy.substring(1)} DESC
+            </when>
+            <when test="sortBy != null">
+                ORDER BY c.${sortBy} ASC
+            </when>
+            <otherwise>
+                ORDER BY c.created_at DESC
+            </otherwise>
+        </choose>
+    </select>
+</mapper> 

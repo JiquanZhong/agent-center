@@ -4,6 +4,7 @@
 HOST_IP=${DOCKER_HOST_IP:-$(ip route show default | awk '/default/ {print $3}')}
 BACKEND_PORT=${BACKEND_PORT:-9091}
 CONFIG_FILE="/usr/share/nginx/html/config/serveConfig.js"
+#CONFIG_FILE="/usr/share/nginx/html/config.js"
 
 # 检查配置文件是否存在
 if [ ! -f "$CONFIG_FILE" ]; then

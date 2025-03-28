@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * Dify外部知识库API请求类
  * 参考文档：https://docs.dify.ai/zh-hans/guides/knowledge-base/external-knowledge-api-documentation
@@ -29,6 +31,9 @@ public class DifyKnowledgeReq {
     @JsonProperty("retrieval_setting")
     private RetrievalSetting retrievalSetting;
 
+    @JsonProperty("metadata_condition")
+    private MetadataCondition metadataCondition;
+
     /**
      * 知识检索参数
      */
@@ -45,5 +50,28 @@ public class DifyKnowledgeReq {
          */
         @JsonProperty("score_threshold")
         private Double scoreThreshold = 0.5;
+    }
+
+    @Data
+    public static class MetadataCondition {
+
+        @JsonProperty("logical_operator")
+        private String logicalOperator;
+
+        @JsonProperty("conditions")
+        private List<Condition> conditions;
+    }
+
+    @Data
+    public static class Condition {
+
+        @JsonProperty("name")
+        private List<String> name;
+
+        @JsonProperty("comparison_operator")
+        private String comparisonOperator;
+
+        @JsonProperty("value")
+        private String value;
     }
 } 

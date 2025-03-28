@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-@Tag(name = "RAGFlow知识库的Controller，提给给Dify的知识库接口")
+@Tag(name = "RAGFlow知识库的Controller")
 @RestController
 @RequestMapping("/v1/ragflow")
 @RequiredArgsConstructor
@@ -30,10 +30,10 @@ public class RAGFlowController {
         ragFlowReq.setQuestion(query);
 //        ragFlowReq.setDatasetIds(Arrays.asList("3bd65786ff2911efa9fe0242ac120006"));
         ragFlowReq.setDatasetIds(Arrays.asList(datasetId));
-        ragFlowReq.setSimilarityThreshold(0.3);
+        ragFlowReq.setSimilarityThreshold(0.4);
         ragFlowReq.setTopK(3);
         ragFlowReq.setPage(1);
-        ragFlowReq.setPageSize(20);
+        ragFlowReq.setPageSize(1);
 
         RAGFlowKnowledgeResp resp = ragFlowAPIService.retrieval(ragFlowReq);
 
@@ -41,6 +41,5 @@ public class RAGFlowController {
             put("chunks", resp.getData().getChunks());
             put("doc_aggs", resp.getData().getDocAggs());
         }};
-//        return ragFlowAPIService.retrieval(ragFlowReq);
     }
 }

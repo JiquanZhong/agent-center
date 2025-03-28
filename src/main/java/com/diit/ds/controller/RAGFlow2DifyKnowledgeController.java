@@ -5,26 +5,26 @@ import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.List;
-
 /**
- * Dify外部知识库API控制器
+ * Dify外接RAGFlow知识库API控制器
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/knowledge")
-@RequiredArgsConstructor
-public class DifyKnowledgeController {
+@RequestMapping("/ragflow/api/knowledge")
+public class RAGFlow2DifyKnowledgeController {
 
     private final DifyKnowledgeService difyKnowledgeService;
 
+    public RAGFlow2DifyKnowledgeController(@Qualifier("ragFlow2DifyKnowledgeServiceImpl") DifyKnowledgeService difyKnowledgeService) {
+        this.difyKnowledgeService = difyKnowledgeService;
+    }
+
     /**
      * 从知识库中检索相关内容
-     * 
+     *
      * @param req 检索请求
      * @return 检索结果
      */

@@ -1,0 +1,89 @@
+:root, :host {
+  /* 应用背景 */
+  --app-background: white; /* 应用背景 */
+  --app-text-color: #333333; /* 应用文字颜色 */
+
+  /* 导航 */
+  --nav-background: white; /* 导航背景 */
+  --nav-title-color: #000000; /* 导航标题颜色 */
+
+  /* 左侧气泡 */
+  --left-bubble-text-color: #222222; /* 左侧气泡文字颜色 */
+  --left-bubble-background: #fff; /* 左侧气泡背景 */
+
+  /* 右侧气泡 */
+  --right-bubble-text-color: #222222; /* 右侧气泡文字颜色 */
+  --right-bubble-background: #EFF6FF; /* 右侧气泡背景 */
+
+  /* 主按钮 */
+  --main-button-text-color: #ffffff; /* 主按钮字体颜色 */
+  --main-button-background: #17a2b8; /* 主按钮背景颜色 */
+
+  /* 输入面板 */
+  --input-panel-background: rgba(233,233,233,0.10);; /* 输入面板背景 */
+  --van-cell-background:rgba(233,233,233,0.10);
+  --input-panel-border:1px solid #bac1d2;
+}
+.chat-container{
+  border-radius: 0% !important;
+}
+.user svg {
+  width: 15px;
+  height: 15px;
+}
+.question-box{
+  border-top: 1px solid #EAEAEA;
+  padding-bottom: 25px !important;
+}
+.brand{
+  border-bottom: 1px solid #EAEAEA;
+}
+.logo{
+  margin-right: 20px !important;
+  position: relative;
+  bottom: 6px;
+}
+.logo img{
+  width: 50px !important;
+}
+.title h5{
+  font-size: 26px;
+}
+.systemFirstComponent-chat-box {
+  background-color: #F8F8F8;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: left;
+}
+
+.systemFirstComponent-logo {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 10px;
+}
+
+.systemFirstComponent-logo img { 
+ width:20px;
+ /* 根据图片大小调整 */ 
+ height: 20px; /* 根据图片大小调整 */ 
+ position: relative;
+ top: 5px;
+}
+
+.systemFirstComponent-message {
+  font-size: 16px;
+  color: #555555;
+  line-height: 1.5;
+}
+details{
+  padding: 0px !important;
+}
+.change-radius{
+  padding: 0px 0px!important;
+  padding-bottom: 13px !important;
+}
+.close-btn{
+  display: none;
+}

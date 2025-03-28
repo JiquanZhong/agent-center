@@ -3,6 +3,25 @@ llm:
 
 dify:
   api:
-    base-url: ${DIFY_URL:http://192.168.11.205}
+    base-url: http://192.168.11.205
     chat-agent-token: Bearer app-Ug8kHQck7eFWEQ9I3WFcNk7J
+    app-id: 00dde580-5faa-4345-b351-af6531253aa0
+    chat-conversations-path: /console/api/apps/{appId}/chat-conversations
+  signature: sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U
 
+rag-flow:
+  api:
+    base-url: http://192.9.100.162
+    api-key: Bearer ragflow-I2OTNiZjQyZmZiODExZWY5MDIyMDI0Mm
+
+h3c:
+  auth:
+    base-url: http://ip:port
+    client-id: eyJhbGciOiJIUzUxMxxxxxxxxxxxVmIH9Kkj1sA
+    client-secret: eyJhbGciOiJIUzUxMxxxxxxxxxxxVmIH9Kkj1sA
+  knowledge:
+    base-url: https://ip:port
+    access-token: accessToken123
+    default-knowledge-code:
+      - knowledge1711518822958
+    question-type: 0

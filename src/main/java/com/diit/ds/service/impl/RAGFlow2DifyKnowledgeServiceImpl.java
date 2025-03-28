@@ -21,9 +21,9 @@ import java.util.Map;
  * 将RAGFlow API适配为Dify外部知识库API
  */
 @Slf4j
-@Service
+@Service("ragFlow2DifyKnowledgeServiceImpl")
 @RequiredArgsConstructor
-public class DifyKnowledgeServiceImpl implements DifyKnowledgeService {
+public class RAGFlow2DifyKnowledgeServiceImpl implements DifyKnowledgeService {
 
     private final RAGFlowAPIService ragFlowAPIService;
 

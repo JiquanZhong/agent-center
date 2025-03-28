@@ -3,7 +3,10 @@ version: '3.8'
 services:
   # 微服务应用
   microservice-ds:
-    image: microservice-ds:1.0
+#    image: microservice-ds:1.0
+    build:
+      context: ./microservice-ds
+      dockerfile: Dockerfile
     container_name: microservice-ds
     ports:
       - "${BACKEND_PORT}:9091"

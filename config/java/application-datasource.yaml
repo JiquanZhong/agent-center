@@ -1,16 +1,19 @@
-postgresql:
-  host: 192.168.60.47
-  master-port: 5432
-  tool_db: gtkj_cjhgz_largemodel
-  username: us_gtkj_cjhgz
-  password: us_gtkj_cjhgz
-
 spring:
   datasource:
-    url: jdbc:postgresql://${postgresql.host}:${postgresql.master-port}/${postgresql.tool_db}?allowMultiQueries=true
-    username: ${postgresql.username}
-    password: ${postgresql.password}
-    driver-class-name: org.postgresql.Driver
+    dynamic:
+      primary: primary # 设置默认的数据源
+      strict: false # 严格匹配数据源，默认false. true未匹配到指定数据源时抛异常，false使用默认数据源
+      datasource:
+        primary:
+          url: jdbc:postgresql://192.168.11.205:5432/dify
+          username: postgres
+          password: difyai123456
+          driver-class-name: org.postgresql.Driver
+        dify:
+          url: jdbc:postgresql://192.168.11.205:5432/dify
+          username: postgres
+          password: difyai123456
+          driver-class-name: org.postgresql.Driver
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20

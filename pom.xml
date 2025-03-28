@@ -23,6 +23,7 @@
         <hutool-core.version>5.8.35</hutool-core.version>
         <knife4j-openapi3-jakarta-spring-boot-starter.version>4.4.0</knife4j-openapi3-jakarta-spring-boot-starter.version>
         <mybatis-plus-spring-boot3-starter.version>3.5.10.1</mybatis-plus-spring-boot3-starter.version>
+        <dynamic-datasource-spring-boot3-starter.version>4.3.1</dynamic-datasource-spring-boot3-starter.version>
     </properties>
 
     <dependencies>
@@ -50,7 +51,7 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-            <version>${mybatis-plus-spring-boot3-starter.version}</version>
+            <version>3.5.10</version>
         </dependency>
 
         <!-- postgresql依赖 -->
@@ -86,8 +87,25 @@
             <artifactId>hutool-core</artifactId>
             <version>${hutool-core.version}</version>
         </dependency>
-    </dependencies>
 
+        <!-- 添加mybatis-plus动态数据源依赖 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
+            <version>${dynamic-datasource-spring-boot3-starter.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.9</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+    </dependencies>
 
     <build>
         <plugins>
