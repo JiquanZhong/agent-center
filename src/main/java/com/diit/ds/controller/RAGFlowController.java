@@ -1,15 +1,13 @@
 package com.diit.ds.controller;
 
 
-import com.diit.ds.domain.req.RAGFlowKnowledgeReq;
-import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
+import com.diit.ds.domain.req.*;
+import com.diit.ds.domain.resp.*;
 import com.diit.ds.service.RAGFlowAPIService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +26,6 @@ public class RAGFlowController {
     public Map retrieval(String query, String datasetId) {
         RAGFlowKnowledgeReq ragFlowReq = new RAGFlowKnowledgeReq();
         ragFlowReq.setQuestion(query);
-//        ragFlowReq.setDatasetIds(Arrays.asList("3bd65786ff2911efa9fe0242ac120006"));
         ragFlowReq.setDatasetIds(Arrays.asList(datasetId));
         ragFlowReq.setSimilarityThreshold(0.4);
         ragFlowReq.setTopK(3);
@@ -41,5 +38,25 @@ public class RAGFlowController {
             put("chunks", resp.getData().getChunks());
             put("doc_aggs", resp.getData().getDocAggs());
         }};
+    }
+
+    @PostMapping("create-dataset")
+    public RAGFlowDatasetCreateResp createDataset(@RequestBody RAGFlowDatasetCreateReq req) {
+        return ragFlowAPIService.createDataset(req);
+    }
+
+    @DeleteMapping("delete-dataset")
+    public RAGFlowDatasetDeleteResp deleteDataset(@RequestBody RAGFlowDatasetDeleteReq req) {
+        return ragFlowAPIService.deleteDatasets(req);
+    }
+
+    @PutMapping("update-dataset")
+    public RAGFlowDatasetUpdateResp updateDataset(@RequestParam String datasetId, @RequestBody RAGFlowDatasetUpdateReq req) {
+        return ragFlowAPIService.updateDataset(datasetId, req);
+    }
+
+    @PostMapping("get-dataset")
+    public RAGFlowDatasetListResp listDatasets(@RequestBody RAGFlowDatasetListReq req) {
+        return ragFlowAPIService.listDatasets(req);
     }
 }
