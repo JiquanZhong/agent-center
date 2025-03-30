@@ -1,0 +1,79 @@
+server:
+  port: 32003
+  #设置请求路径
+  servlet:
+    context-path: /${OPERATION_BACKEND_CONTEXT_PATH:-diit-system}
+
+db:
+  ip: ${DB_HOST}
+  port: 5432
+  sid: ${DB_NAME}
+  username: ${DB_USER}
+  password: ${DB_PASSWORD}
+
+
+spring:
+  application:
+    name: ${OPERATION_BACKEND_CONTEXT_PATH:-diit-system}
+  # 开发工具
+  devtools:
+    restart:
+      # 热部署开关
+      enabled: true
+  # 数据库连接
+  datasource:
+    druid:
+      url: jdbc:postgresql://${db.ip}:${db.port}/${db.sid}
+      username: ${db.username}
+      password: ${db.password}
+      # 配置初始化大小、最小、最大 (通常来说，只需要修改initialSize、minIdle、maxActive)
+      initial-size: 1
+      min-idle: 1
+      max-active: 20
+      # 配置获取连接等待超时的时间
+      max-wait: 60000
+      filters: stat,slf4j
+      web-stat-filter:
+        enabled: true
+      stat-view-servlet:
+        enabled: true
+      filter:
+        stat:
+          log-slow-sql: true
+          slow-sql-millis: 2000
+      type: com.alibaba.druid.pool.DruidDataSource
+
+mybatis-plus:
+  configuration:
+    jdbc-type-for-null: 'null'
+
+diit:
+  #加密相关配置
+  crypto:
+    #新增用户的默认密码（重置密码）,添加引号防止被特殊处理为一个0
+    default-password: Abc@Diit!123
+    #默认加密算法
+    encrypt-strategy: sm4
+    #Aes秘钥
+    aes-secret-key: diit123456ASDPLM
+    #des秘钥
+    des-secret-key: cap_user
+    #sm4秘钥
+    sm4-secret-key: diitdiitdiitdiit
+    # JWT鉴权密钥
+    jwt-secret-key: eyJzdWIiOiJ7XCJsb2dpbk5hbWVcIjpcImFkbWluXCIsXCJ1c2VySWRcIjpcIi0xXCIsXCJ1c2VyTmFtZVwiOlwi6LaF57qn566h55CG5ZGYXCJ9IiwiaWF0IjoxNzQzMTQ0OTUzLCJleHAiOjE3NDU3MzY5NTN9
+  file:
+    # 值范围: local 、minio
+    storage-type: local
+    #本地路径，storage-type为 local 时生效
+    local-storage-path: /app/attachment
+    #本地路径，storage-type为 minio 时生效
+    minio:
+      # bucket名称 默认 attachment
+      bucket-name: attachment
+      # minio 地址
+      endpoint: http://192.168.1.187:9001
+      access-key: minioadmin
+      secret-key: minioadmin
+  liquibase:
+    enabled: true 

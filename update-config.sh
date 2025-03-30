@@ -22,9 +22,9 @@ fi
 cp "$CONFIG_FILE" "${CONFIG_FILE}.bak" 2>/dev/null || true
 
 # 使用sed替换url配置
-sed -i "s|url: 'http://[^']*'|url: 'http://${HOST_IP}:${BACKEND_PORT}'|" "$CONFIG_FILE"
+sed -i "s|url: 'http://[^']*'|url: 'http://${HOST_IP}:${FRONTEND_PORT}'|" "$CONFIG_FILE"
 
-echo "配置文件已更新: http://${HOST_IP}:${BACKEND_PORT}"
+echo "配置文件已更新: http://${HOST_IP}:${FRONTEND_PORT}"
 
 # 显示更新后的配置文件内容
 echo "更新后的配置文件内容："

@@ -1,6 +1,0 @@
-# 线程池配置
-thread-pool:
-  core-pool-size: 5
-  max-pool-size: 10
-  keep-alive-time: 60
-  queue-capacity: 100
