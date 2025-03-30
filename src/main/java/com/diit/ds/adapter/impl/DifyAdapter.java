@@ -277,6 +277,38 @@ public class DifyAdapter implements LLMAdapter {
     }
 
     @Override
+    public Map<String, Object> getConversations(String user, String lastId, Integer limit, String keyword) {
+        if (keyword == null || keyword.isEmpty()) {
+            return this.getConversations(user, lastId, limit);
+        }
+
+        // 获取四倍limit的数据
+        Map<String, Object> conversations = this.getConversations(user, lastId, limit * 4);
+        
+        // 获取原始数据列表
+        List<Map<String, Object>> data = (List<Map<String, Object>>) conversations.get("data");
+        if (data == null || data.isEmpty()) {
+            return conversations;
+        }
+
+        // 根据keyword筛选数据
+        List<Map<String, Object>> filteredData = data.stream()
+                .filter(item -> {
+                    String name = (String) item.get("name");
+                    return name != null && name.toLowerCase().contains(keyword.toLowerCase());
+                })
+                .limit(limit) // 限制返回数量为原始limit
+                .toList();
+
+        // 更新返回结果
+        conversations.put("data", filteredData);
+        conversations.put("has_more", filteredData.size() >= limit);
+        conversations.put("limit", limit);
+
+        return conversations;
+    }
+
+    @Override
     public Map<String, Object> deleteConversation(String conversationId, Map<String, Object> requestBody) {
         String url = difyBaseUrl + "/v1/conversations/" + conversationId;
 

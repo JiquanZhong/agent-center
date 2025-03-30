@@ -62,16 +62,17 @@ public interface LLMService {
      * @return 消息列表
      */
     Map<String, Object> getMessages(String user, String conversationId, Integer limit);
-    
+
     /**
      * 获取对话列表
-     * 
+     *
      * @param user 用户ID
      * @param lastId 最后一个对话ID
      * @param limit 限制数量
+     * @param keyword 搜索关键字
      * @return 对话列表
      */
-    Map<String, Object> getConversations(String user, String lastId, Integer limit);
+    Map<String, Object> getConversations(String user, String lastId, Integer limit, String keyword);
     
     /**
      * 删除对话

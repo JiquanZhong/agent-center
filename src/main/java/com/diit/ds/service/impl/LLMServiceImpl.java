@@ -2,7 +2,6 @@ package com.diit.ds.service.impl;
 
 import com.diit.ds.adapter.LLMAdapter;
 import com.diit.ds.adapter.impl.DifyAdapter;
-import com.diit.ds.adapter.impl.OllamaAdapter;
 import com.diit.ds.service.LLMService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +22,6 @@ import java.util.Map;
 public class LLMServiceImpl implements LLMService {
 
     private final DifyAdapter difyAdapter;
-    private final OllamaAdapter ollamaAdapter;
 
     @Value("${llm.provider}")
     private String llmProvider;
@@ -84,12 +82,12 @@ public class LLMServiceImpl implements LLMService {
     }
     
     @Override
-    public Map<String, Object> getConversations(String user, String lastId, Integer limit) {
+    public Map<String, Object> getConversations(String user, String lastId, Integer limit, String keyword) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.getConversations(user, lastId, limit);
+        return adapter.getConversations(user, lastId, limit, keyword);
     }
     
     @Override
@@ -163,9 +161,6 @@ public class LLMServiceImpl implements LLMService {
      */
     private LLMAdapter getAdapter() {
         switch (llmProvider.toLowerCase()) {
-            case "ollama":
-                log.info("使用Ollama adapter");
-                return ollamaAdapter;
             case "dify":
             default:
                 log.info("使用Dify adapter");

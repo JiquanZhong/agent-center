@@ -100,9 +100,10 @@ public class DifyChatAPIController {
     public Map<String, Object> getConversations(
             @RequestParam String user,
             @RequestParam(required = false) String last_id,
-            @RequestParam(required = false, defaultValue = "20") Integer limit) {
+            @RequestParam(required = false, defaultValue = "20") Integer limit,
+            @RequestParam(required = false) String keyWord) {
         log.info("获取对话列表，user: {}, last_id: {}, limit: {}", user, last_id, limit);
-        return llmService.getConversations(user, last_id, limit);
+        return llmService.getConversations(user, last_id, limit, keyWord);
     }
     
     /**
