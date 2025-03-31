@@ -1,10 +1,9 @@
-/diit-microservice-report/target/
 /logs/
 /log/
 .idea
-diit-largemodel-common/target
-.idea
-diit-largemodel-common/target
-microservice-ds/target
-target
 .vscode
+volumes
+**/target
+.cursorrules
+volumes/
+volumes

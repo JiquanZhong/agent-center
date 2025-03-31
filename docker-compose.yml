@@ -5,7 +5,7 @@ services:
   microservice-ds:
 #    image: microservice-ds:1.0
     build:
-      context: ./
+      context: ./service
       dockerfile: Dockerfile
     container_name: microservice-ds
     ports:

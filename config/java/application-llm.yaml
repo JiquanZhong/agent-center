@@ -11,8 +11,8 @@ dify:
 
 rag-flow:
   api:
-    base-url: http://192.9.100.162
-    api-key: Bearer ragflow-I2OTNiZjQyZmZiODExZWY5MDIyMDI0Mm
+    base-url: http://192.9.100.11:8000
+    api-key: Bearer ragflow-lkODFmN2Y0MGFjYTExZjBiYjE2MDI0Mm
 
 h3c:
   auth:
