@@ -71,13 +71,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 令牌验证通过，继续处理请求
-            filterChain.doFilter(request, response);
         } catch (Exception e) {
             log.error("JWT认证异常", e);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.getWriter().write("服务器内部错误");
         }
+        // 令牌验证通过，继续处理请求
+        filterChain.doFilter(request, response);
     }
 
     /**

@@ -11,7 +11,7 @@ services:
     ports:
       - "${BACKEND_PORT}:9091"
     volumes:
-      - ./config/java:/app/config
+#      - ./config/java:/app/config
       - ./log:/app/log
     environment:
       - JAVA_OPTS=${JAVA_OPTS}

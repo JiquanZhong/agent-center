@@ -68,7 +68,7 @@ public class RAGFlowDatasetCreateReq {
      * - "team"：所有团队成员可以管理数据集
      */
     @JsonProperty("permission")
-    private String permission;
+    private String permission = "team";
 
     /**
      * 分块方法
@@ -94,7 +94,7 @@ public class RAGFlowDatasetCreateReq {
      * 配置项根据选择的分块方法不同而变化
      */
     @JsonProperty("parser_config")
-    private ParserConfig parserConfig;
+    private ParserConfig parserConfig = new ParserConfig();
 
     /**
      * 解析器配置类，根据不同的分块方法有不同的属性
@@ -118,7 +118,7 @@ public class RAGFlowDatasetCreateReq {
          * 分块token数量，默认为512
          */
         @JsonProperty("chunk_token_num")
-        private Integer chunkTokenNum = 512;
+        private Integer chunkTokenNum = 1024;
 
         /**
          * 是否进行布局识别，默认为DeepDOC
@@ -142,7 +142,7 @@ public class RAGFlowDatasetCreateReq {
          * PDF任务页面大小，默认为12
          */
         @JsonProperty("task_page_size")
-        private Integer taskPageSize;
+        private Integer taskPageSize = 12;
 
         /**
          * Raptor特定设置
@@ -165,7 +165,7 @@ public class RAGFlowDatasetCreateReq {
              * 是否使用Raptor，默认为false
              */
             @JsonProperty("use_raptor")
-            private Boolean useRaptor;
+            private Boolean useRaptor = false;
         }
     }
 } 

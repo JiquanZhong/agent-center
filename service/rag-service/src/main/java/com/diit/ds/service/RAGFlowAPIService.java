@@ -11,6 +11,9 @@ import com.diit.ds.domain.resp.RAGFlowDatasetListResp;
 import com.diit.ds.domain.resp.RAGFlowDatasetUpdateResp;
 import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
 
+/**
+ * RAGFlow API服务接口
+ */
 public interface RAGFlowAPIService {
     /**
      * 知识检索
@@ -21,8 +24,9 @@ public interface RAGFlowAPIService {
 
     /**
      * 创建数据集
+     *
      * @param req 创建数据集请求
-     * @return 创建数据集响应
+     * @return 创建的数据集信息
      */
     RAGFlowDatasetCreateResp createDataset(RAGFlowDatasetCreateReq req);
     

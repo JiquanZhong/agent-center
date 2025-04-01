@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/example")
+@RequestMapping("/api/auth/test")
 @Tag(name = "示例接口", description = "展示JWT认证的例子")
 @RequiredArgsConstructor
-public class ExampleController {
+public class AuthExampleController {
 
     /**
      * 公开接口，不需要认证

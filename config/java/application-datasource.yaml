@@ -5,9 +5,9 @@ spring:
       strict: false # 严格匹配数据源，默认false. true未匹配到指定数据源时抛异常，false使用默认数据源
       datasource:
         primary:
-          url: jdbc:postgresql://192.168.11.205:5432/dify
+          url: jdbc:postgresql://192.9.100.162:5433/houtu
           username: postgres
-          password: difyai123456
+          password: postgres
           driver-class-name: org.postgresql.Driver
         dify:
           url: jdbc:postgresql://192.168.11.205:5432/dify
