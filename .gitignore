@@ -7,3 +7,4 @@ volumes
 .cursorrules
 volumes/
 volumes
+service/log

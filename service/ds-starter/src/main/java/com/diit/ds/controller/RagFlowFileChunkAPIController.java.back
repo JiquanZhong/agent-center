@@ -1,0 +1,68 @@
+package com.diit.ds.controller;
+
+import com.diit.ds.domain.req.RagFlowChunkListReq;
+import com.diit.ds.domain.req.RagFlowChunkUpdateReq;
+import com.diit.ds.domain.resp.RagFlowChunkListResp;
+import com.diit.ds.domain.resp.RagFlowChunkUpdateResp;
+import com.diit.ds.service.RagFlowFileChunkAPIService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * RAGFlow文件切片API测试控制器
+ */
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/ragflow/chunks")
+public class RagFlowFileChunkAPIController {
+    
+    private final RagFlowFileChunkAPIService ragFlowFileChunkAPIService;
+    
+    /**
+     * 查看文档切片列表
+     * @param datasetId 数据集ID
+     * @param documentId 文档ID
+     * @param page 页码
+     * @param pageSize 每页条数
+     * @param keywords 关键词
+     * @param id 切片ID
+     * @return 切片列表
+     */
+    @GetMapping("/list/{datasetId}/{documentId}")
+    public RagFlowChunkListResp listChunks(@PathVariable String datasetId,
+                                          @PathVariable String documentId,
+                                          @RequestParam(required = false) Integer page,
+                                          @RequestParam(required = false) Integer pageSize,
+                                          @RequestParam(required = false) String keywords,
+                                          @RequestParam(required = false) String id) {
+        // 构建请求对象
+        RagFlowChunkListReq req = RagFlowChunkListReq.builder()
+                .page(page)
+                .pageSize(pageSize)
+                .keywords(keywords)
+                .id(id)
+                .build();
+        
+        return ragFlowFileChunkAPIService.listChunks(datasetId, documentId, req);
+    }
+    
+    /**
+     * 更新文档切片内容
+     * @param datasetId 数据集ID
+     * @param documentId 文档ID
+     * @param chunkId 切片ID
+     * @param req 更新请求
+     * @return 更新结果
+     */
+    @PutMapping("/update/{datasetId}/{documentId}/{chunkId}")
+    public RagFlowChunkUpdateResp updateChunk(@PathVariable String datasetId,
+                                             @PathVariable String documentId,
+                                             @PathVariable String chunkId,
+                                             @RequestBody RagFlowChunkUpdateReq req) {
+        return ragFlowFileChunkAPIService.updateChunk(datasetId, documentId, chunkId, req);
+    }
+} 

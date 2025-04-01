@@ -5,7 +5,7 @@ import com.diit.ds.domain.req.RAGFlowKnowledgeReq;
 import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
-import com.diit.ds.service.RAGFlowAPIService;
+import com.diit.ds.service.RAGFlowDBAPIService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RAGFlow2DifyKnowledgeServiceImpl implements DifyKnowledgeService {
 
-    private final RAGFlowAPIService ragFlowAPIService;
+    private final RAGFlowDBAPIService ragFlowDBAPIService;
 
     @Override
     public DifyKnowledgeResp retrieveKnowledge(DifyKnowledgeReq req) {
@@ -34,7 +34,7 @@ public class RAGFlow2DifyKnowledgeServiceImpl implements DifyKnowledgeService {
             RAGFlowKnowledgeReq ragFlowReq = convertToRAGFlowRequest(req);
             
             // 调用RAGFlow API
-            RAGFlowKnowledgeResp ragFlowResp = ragFlowAPIService.retrieval(ragFlowReq);
+            RAGFlowKnowledgeResp ragFlowResp = ragFlowDBAPIService.retrieval(ragFlowReq);
             
             // 将RAGFlow响应转换为Dify响应
             return convertToDifyResponse(ragFlowResp);

@@ -14,6 +14,11 @@ spring:
           username: postgres
           password: difyai123456
           driver-class-name: org.postgresql.Driver
+        ragflow:
+          url: jdbc:mysql://192.9.100.11:5455/rag_flow
+          username: root
+          password: infini_rag_flow
+          driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5
       maximum-pool-size: 20

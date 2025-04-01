@@ -29,5 +29,8 @@ public interface KnowledgeTreeNodeService extends IService<KnowledgeTreeNode> {
 
     List<String> getIdsByPid(String pid);
 
+    List<KnowledgeTreeNode> getNodesByPid(String pid);
+
     KnowledgeTreeNodeDTO getTreeNodeDTO();
+
 }

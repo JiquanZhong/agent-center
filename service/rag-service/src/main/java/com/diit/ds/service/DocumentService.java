@@ -1,0 +1,17 @@
+package com.diit.ds.service;
+
+import com.baomidou.dynamic.datasource.annotation.DS;
+import com.diit.ds.domain.entity.Document;
+import com.baomidou.mybatisplus.extension.service.IService;
+
+/**
+* @author test
+* @description 针对表【document】的数据库操作Service
+* @createDate 2025-04-01 17:20:03
+*/
+@DS("ragflow")
+public interface DocumentService extends IService<Document> {
+
+    String getDatasetId(String documentId);
+
+}

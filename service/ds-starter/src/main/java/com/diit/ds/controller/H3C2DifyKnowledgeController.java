@@ -34,4 +34,5 @@ public class H3C2DifyKnowledgeController {
         log.info("接收到知识库查询请求：{}", req);
         return difyKnowledgeService.retrieveKnowledge(req);
     }
+
 } 

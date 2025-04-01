@@ -1,4 +1,0 @@
-ragflow:
-  api:
-    url: ${RAGFLOW_API_URL:http://localhost:8000}
-    key: ${RAGFLOW_API_KEY:your-api-key} 

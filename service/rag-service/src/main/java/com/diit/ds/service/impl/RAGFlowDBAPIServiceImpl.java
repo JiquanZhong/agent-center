@@ -11,7 +11,7 @@ import com.diit.ds.domain.resp.RAGFlowDatasetDeleteResp;
 import com.diit.ds.domain.resp.RAGFlowDatasetListResp;
 import com.diit.ds.domain.resp.RAGFlowDatasetUpdateResp;
 import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
-import com.diit.ds.service.RAGFlowAPIService;
+import com.diit.ds.service.RAGFlowDBAPIService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -22,15 +22,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.List;
-
 /**
  * RAGFlowAPI调用实现类
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RAGFlowAPIServiceImpl implements RAGFlowAPIService {
+public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
     private static final String API_PREFIX = "/api/v1";
     private static final String RETRIEVAL_ENDPOINT = "/retrieval";
     private static final String DATASETS_ENDPOINT = "/datasets";

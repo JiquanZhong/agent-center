@@ -13,7 +13,7 @@ import com.diit.ds.domain.resp.RAGFlowDatasetDeleteResp;
 import com.diit.ds.domain.resp.RAGFlowDatasetUpdateResp;
 import com.diit.ds.service.KnowledgeTreeNodeService;
 import com.diit.ds.mapper.KnowledgeTreeNodeMapper;
-import com.diit.ds.service.RAGFlowAPIService;
+import com.diit.ds.service.RAGFlowDBAPIService;
 import com.diit.ds.structmapper.KnowledgeTreeNodeSM;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 @DS("primary")
 public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeMapper, KnowledgeTreeNode> implements KnowledgeTreeNodeService {
 
-    private final RAGFlowAPIService ragFlowAPIService;
+    private final RAGFlowDBAPIService ragFlowDBAPIService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -49,7 +49,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         req.setDescription(knowledgeTreeNode.getDescription());
         
         // 调用RAGFlow API创建数据集
-        RAGFlowDatasetCreateResp resp = ragFlowAPIService.createDataset(req);
+        RAGFlowDatasetCreateResp resp = ragFlowDBAPIService.createDataset(req);
 
         // 检查API调用结果
         if (resp != null && resp.getCode() == 0 && resp.getData() != null) {
@@ -91,7 +91,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             if (resp != null && resp.getData() != null) {
                 RAGFlowDatasetDeleteReq deleteReq = new RAGFlowDatasetDeleteReq();
                 deleteReq.setIds(Arrays.asList(resp.getData().getId()));
-                ragFlowAPIService.deleteDatasets(deleteReq);
+                ragFlowDBAPIService.deleteDatasets(deleteReq);
             }
             throw new RuntimeException("创建RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
         }
@@ -113,7 +113,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                 knowledgeTreeNode.getRagflowName() : knowledgeTreeNode.getName());
         
         // 调用RAGFlow API更新数据集
-        RAGFlowDatasetUpdateResp resp = ragFlowAPIService.updateDataset(existingNode.getKdbId(), req);
+        RAGFlowDatasetUpdateResp resp = ragFlowDBAPIService.updateDataset(existingNode.getKdbId(), req);
         
         // 检查API调用结果
         if (resp != null && resp.getCode() == 0) {
@@ -160,7 +160,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         req.setIds(allKdbIds);
         
         // 调用RAGFlow API删除数据集
-        RAGFlowDatasetDeleteResp resp = ragFlowAPIService.deleteDatasets(req);
+        RAGFlowDatasetDeleteResp resp = ragFlowDBAPIService.deleteDatasets(req);
         
         // 检查API调用结果
         if (resp != null && resp.getCode() == 0) {
@@ -206,7 +206,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         req.setIds(kdbIds);
         
         // 调用RAGFlow API删除数据集
-        RAGFlowDatasetDeleteResp resp = ragFlowAPIService.deleteDatasets(req);
+        RAGFlowDatasetDeleteResp resp = ragFlowDBAPIService.deleteDatasets(req);
         
         // 检查API调用结果
         if (resp != null && resp.getCode() == 0) {
@@ -254,7 +254,13 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         
         return result;
     }
-    
+
+    @Override
+    public List<KnowledgeTreeNode> getNodesByPid(String pid) {
+        List<String> ids = getIdsByPid(pid);
+        return listByIds(ids);
+    }
+
     /**
      * 递归收集某节点下的所有子孙节点ID
      * @param parentId 父节点ID

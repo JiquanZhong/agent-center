@@ -14,7 +14,7 @@ import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
 /**
  * RAGFlow API服务接口
  */
-public interface RAGFlowAPIService {
+public interface RAGFlowDBAPIService {
     /**
      * 知识检索
      * @param req 检索请求

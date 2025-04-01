@@ -3,7 +3,7 @@ package com.diit.ds.controller;
 
 import com.diit.ds.domain.req.*;
 import com.diit.ds.domain.resp.*;
-import com.diit.ds.service.RAGFlowAPIService;
+import com.diit.ds.service.RAGFlowDBAPIService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
