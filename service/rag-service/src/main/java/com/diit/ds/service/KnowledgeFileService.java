@@ -1,15 +1,11 @@
 package com.diit.ds.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
-import com.diit.ds.domain.dto.KnowledgeTreeNodeDTO;
-import com.diit.ds.domain.entity.KnowledgeTreeNode;
 import com.diit.ds.domain.req.*;
 import com.diit.ds.domain.resp.*;
 import com.diit.ds.exception.FileNotFoundException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.OutputStream;
-import java.util.List;
 
 /**
 * @author test

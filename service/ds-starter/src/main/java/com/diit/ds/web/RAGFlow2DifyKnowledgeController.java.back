@@ -1,0 +1,38 @@
+package com.diit.ds.web;
+
+import com.diit.ds.domain.req.DifyKnowledgeReq;
+import com.diit.ds.domain.resp.DifyKnowledgeResp;
+import com.diit.ds.service.DifyKnowledgeService;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Dify外接RAGFlow知识库API控制器
+ */
+@Slf4j
+@RestController
+@RequestMapping("/ragflow/api/knowledge")
+public class RAGFlow2DifyKnowledgeController {
+
+    private final DifyKnowledgeService difyKnowledgeService;
+
+    public RAGFlow2DifyKnowledgeController(@Qualifier("ragFlow2DifyKnowledgeServiceImpl") DifyKnowledgeService difyKnowledgeService) {
+        this.difyKnowledgeService = difyKnowledgeService;
+    }
+
+    /**
+     * 从知识库中检索相关内容
+     *
+     * @param req 检索请求
+     * @return 检索结果
+     */
+    @PostMapping("/retrieval")
+    public DifyKnowledgeResp retrieveKnowledge(@RequestBody DifyKnowledgeReq req) {
+        log.info("接收到知识库检索请求: {}", req);
+        DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);
+        log.info("知识库检索结果数量: {}", resp.getRecords() != null ? resp.getRecords().size() : 0);
+        return resp;
+    }
+} 

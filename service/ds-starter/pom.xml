@@ -52,8 +52,8 @@
                     </excludes>
                     <!-- 打包时是否包含开发工具 -->
                     <excludeDevtools>true</excludeDevtools>
-                    <!-- 分类器，用于创建可执行jar和普通jar -->
-                    <!-- <classifier>exec</classifier> -->
+                    <!-- 包含系统范围的依赖 -->
+                    <includeSystemScope>true</includeSystemScope>
                 </configuration>
                 <executions>
                     <execution>
