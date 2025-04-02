@@ -159,4 +159,10 @@ public class Document {
      */
     @TableField(value = "status")
     private String status;
+
+    /**
+     *
+     */
+    @TableField(value = "username")
+    private String username;
 }

@@ -1,6 +1,7 @@
 package com.diit.ds.filter;
 
 import com.diit.ds.annotation.NotNeedAuth;
+import com.diit.ds.context.UserContext;
 import com.diit.ds.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Map;
 
 /**
  * JWT认证过滤器
@@ -37,6 +39,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
+            // 清除上一个请求的用户上下文
+            UserContext.clear();
+            
             if (!enabled) {
                 filterChain.doFilter(request, response);
                 return;
@@ -70,51 +75,68 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 response.getWriter().write("无效的JWT令牌");
                 return;
             }
+            
+            // 解析JWT中的用户信息并存储到上下文中
+            Map<String, String> userInfo = jwtUtil.parseUserInfo(token);
+            if (userInfo != null) {
+                // 设置用户上下文
+                if (userInfo.containsKey("userName")) {
+                    UserContext.setUserName(userInfo.get("userName"));
+                }
+                if (userInfo.containsKey("userId")) {
+                    UserContext.setUserId(userInfo.get("userId"));
+                }
+                if (userInfo.containsKey("loginName")) {
+                    UserContext.setLoginName(userInfo.get("loginName"));
+                }
+                
+                log.debug("已设置用户上下文: {}", UserContext.getAttributes());
+            } else {
+                log.warn("无法解析JWT中的用户信息: {}", token);
+            }
 
+            // 继续请求处理
+            filterChain.doFilter(request, response);
         } catch (Exception e) {
-            log.error("JWT认证异常", e);
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-            response.getWriter().write("服务器内部错误");
+            response.getWriter().write("服务器内部错误: " + e.getMessage());
+        } finally {
+            // 清除用户上下文，防止内存泄漏
+            UserContext.clear();
         }
-        // 令牌验证通过，继续处理请求
-        filterChain.doFilter(request, response);
     }
 
     /**
-     * 检查是否是不需要认证的接口
+     * 判断是否是不需要认证的接口
      *
-     * @param request HTTP请求
+     * @param request 请求
      * @return 是否是不需要认证的接口
      */
-    private boolean isNotNeedAuthEndpoint(HttpServletRequest request) throws Exception {
-        String path = request.getRequestURI();
+    private boolean isNotNeedAuthEndpoint(HttpServletRequest request) {
+        try {
+            HandlerExecutionChain handlerExecutionChain = handlerMapping.getHandler(request);
+            if (handlerExecutionChain == null) {
+                return false;
+            }
 
-        // 放行Swagger和Knife4j相关路径
-        if (path.contains("/swagger-ui") ||
-                path.contains("/v3/api-docs") ||
-                path.contains("/swagger-resources") ||
-                path.contains("/doc.html") ||
-                path.contains("/webjars/") ||
-                path.contains("/favicon.ico")) {
-            return true;
+            Object handler = handlerExecutionChain.getHandler();
+            if (!(handler instanceof HandlerMethod)) {
+                return false;
+            }
+
+            HandlerMethod handlerMethod = (HandlerMethod) handler;
+            Method method = handlerMethod.getMethod();
+
+            // 检查方法上是否有NotNeedAuth注解
+            if (method.isAnnotationPresent(NotNeedAuth.class)) {
+                return true;
+            }
+
+            // 检查类上是否有NotNeedAuth注解
+            return handlerMethod.getBeanType().isAnnotationPresent(NotNeedAuth.class);
+        } catch (Exception e) {
+            log.error("检查接口认证要求时发生异常: {}", e.getMessage(), e);
+            return false;
         }
-
-        // 获取处理该请求的HandlerMethod
-        HandlerExecutionChain chain = handlerMapping.getHandler(request);
-        if (chain == null || !(chain.getHandler() instanceof HandlerMethod)) {
-            // 静态资源或不存在的路径，默认不需要认证
-            return true;
-        }
-
-        HandlerMethod handlerMethod = (HandlerMethod) chain.getHandler();
-        Method method = handlerMethod.getMethod();
-
-        // 检查方法上是否有NotNeedAuth注解
-        if (method.isAnnotationPresent(NotNeedAuth.class)) {
-            return true;
-        }
-
-        // 检查类上是否有NotNeedAuth注解
-        return method.getDeclaringClass().isAnnotationPresent(NotNeedAuth.class);
     }
 } 

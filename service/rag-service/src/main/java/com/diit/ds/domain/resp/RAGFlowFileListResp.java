@@ -181,5 +181,11 @@ public class RAGFlowFileListResp {
          */
         @JsonProperty("update_time")
         private Long updateTime;
+        
+        /**
+         * 上传人用户名
+         * 不是RAGFlow原始字段，由系统添加
+         */
+        private String username;
     }
 } 
