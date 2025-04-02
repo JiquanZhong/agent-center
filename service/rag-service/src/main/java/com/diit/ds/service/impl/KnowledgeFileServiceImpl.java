@@ -326,7 +326,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
             }
 
             // 获取数据集ID
-            String datasetId = document.getId();
+            String datasetId = document.getKbId();
 
             // 调用RAGFlow API删除文件
             if (datasetId != null) {
@@ -392,7 +392,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
             }
 
             // 获取数据集ID
-            String datasetId = document.getId();
+            String datasetId = document.getKbId();
 
             // 调用RAGFlow API停止解析任务
             if (datasetId != null) {
