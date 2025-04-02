@@ -20,6 +20,15 @@ public interface KnowledgeFileService{
      * @return 上传结果
      */
     RAGFlowFileUploadResp uploadFiles(String treeNodeId, MultipartFile[] files);
+    
+    /**
+     * 上传文件到知识中心节点（先转换为PDF）
+     * @param treeNodeId 数据集ID
+     * @param files 文件列表
+     * @param convertToPdf 是否转换为PDF
+     * @return 上传结果
+     */
+    RAGFlowFileUploadResp uploadFiles(String treeNodeId, MultipartFile[] files, boolean convertToPdf);
 
     /**
      * 下载文件

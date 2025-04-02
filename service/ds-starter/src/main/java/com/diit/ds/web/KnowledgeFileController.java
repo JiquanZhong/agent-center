@@ -29,7 +29,9 @@ public class KnowledgeFileController {
     public ResponseEntity<RAGFlowFileUploadResp> uploadFiles(
             @Parameter(description = "知识库节点ID") @PathVariable String treeNodeId,
             @Parameter(description = "上传文件") @RequestParam("files") MultipartFile[] files) {
-        RAGFlowFileUploadResp result = knowledgeFileService.uploadFiles(treeNodeId, files);
+//        RAGFlowFileUploadResp result = knowledgeFileService.uploadFiles(treeNodeId, files);
+        RAGFlowFileUploadResp result = knowledgeFileService.uploadFiles(treeNodeId, files, true);
+
         return ResponseEntity.ok(result);
     }
 
