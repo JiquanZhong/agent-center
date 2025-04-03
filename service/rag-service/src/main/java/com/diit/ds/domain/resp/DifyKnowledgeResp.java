@@ -46,4 +46,25 @@ public class DifyKnowledgeResp {
         @JsonProperty("metadata")
         private Object metadata;
     }
+
+    @Data
+    public static class SimpleRecord {
+        /**
+         * 包含知识库中数据源的文本块
+         */
+        @JsonProperty("content")
+        private String content;
+
+        /**
+         * 结果与查询的相关性分数，范围：0~1
+         */
+        @JsonProperty("score")
+        private Double score;
+
+        /**
+         * 文档标题
+         */
+        @JsonProperty("title")
+        private String title;
+    }
 } 

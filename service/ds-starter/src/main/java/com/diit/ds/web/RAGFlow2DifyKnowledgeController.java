@@ -3,10 +3,15 @@ package com.diit.ds.web;
 import com.diit.ds.domain.req.DifyKnowledgeReq;
 import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
+import com.diit.ds.structmapper.DifyKnowledgeRespSM;
+import com.diit.ds.structmapper.KnowledgeTreeNodeSM;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Dify外接RAGFlow知识库API控制器
@@ -34,5 +39,20 @@ public class RAGFlow2DifyKnowledgeController {
         DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);
         log.info("知识库检索结果数量: {}", resp.getRecords() != null ? resp.getRecords().size() : 0);
         return resp;
+    }
+
+    /**
+     * 从知识库中检索相关内容
+     *
+     * @param req 检索请求
+     * @return 检索结果
+     */
+    @PostMapping("/retrievalSimple")
+    public List<DifyKnowledgeResp.SimpleRecord> retrieveKnowledgeSimple(@RequestBody DifyKnowledgeReq req) {
+        log.info("接收到知识库检索请求: {}", req);
+        DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);
+        log.info("知识库检索结果数量: {}", resp.getRecords() != null ? resp.getRecords().size() : 0);
+
+        return resp.getRecords().stream().map(DifyKnowledgeRespSM.INSTANCE::toSimpleRecord).collect(Collectors.toList());
     }
 } 

@@ -38,6 +38,8 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
 
     @Override
     public RAGFlowKnowledgeResp retrieval(RAGFlowKnowledgeReq req) {
+
+
         try {
             // 构建请求URL
             String url = ragFlowConfig.getBaseUrl() + API_PREFIX + RETRIEVAL_ENDPOINT;

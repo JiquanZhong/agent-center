@@ -292,6 +292,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
                     if (username != null) {
                         fileInfo.setUsername(username);
                     }
+
                 });
                 
                 log.debug("文件列表添加用户名信息成功，处理文件数: {}", resp.getData().getDocs().size());

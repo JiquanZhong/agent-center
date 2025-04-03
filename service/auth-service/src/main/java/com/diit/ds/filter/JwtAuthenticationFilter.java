@@ -41,14 +41,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // 清除上一个请求的用户上下文
             UserContext.clear();
-            
+
             if (!enabled) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
+            // 检查是否是Swagger或Knife4j相关路径
+            if (isSwaggerOrKnife4jPath(request)) {
+                log.debug("Swagger或Knife4j相关路径放行: {} {}", request.getMethod(), request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+
             // 检查是否是不需要认证的接口
-            if (isNotNeedAuthEndpoint(request)) {
+            if (!isNotNeedAuthEndpoint(request)) {
                 log.debug("跳过认证: {} {}", request.getMethod(), request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;
@@ -75,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 response.getWriter().write("无效的JWT令牌");
                 return;
             }
-            
+
             // 解析JWT中的用户信息并存储到上下文中
             Map<String, String> userInfo = jwtUtil.parseUserInfo(token);
             if (userInfo != null) {
@@ -89,7 +97,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (userInfo.containsKey("loginName")) {
                     UserContext.setLoginName(userInfo.get("loginName"));
                 }
-                
+
                 log.debug("已设置用户上下文: {}", UserContext.getAttributes());
             } else {
                 log.warn("无法解析JWT中的用户信息: {}", token);
@@ -138,5 +146,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("检查接口认证要求时发生异常: {}", e.getMessage(), e);
             return false;
         }
+    }
+
+    /**
+     * 判断请求是否为Swagger或Knife4j相关路径
+     *
+     * @param request HTTP请求
+     * @return 是否为Swagger或Knife4j相关路径
+     */
+    private boolean isSwaggerOrKnife4jPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+
+        // 放行Swagger和Knife4j相关路径
+        if (path.contains("/swagger-ui") ||
+                path.contains("/v3/api-docs") ||
+                path.contains("/swagger-resources") ||
+                path.contains("/doc.html") ||
+                path.contains("/webjars/") ||
+                path.contains("/favicon.ico") ||
+                path.contains("/actuator")) {
+            return true;
+        }
+
+        return false;
     }
 } 
