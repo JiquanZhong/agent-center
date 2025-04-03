@@ -12,9 +12,6 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 @Slf4j
 @Service
@@ -24,7 +21,7 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
     private final KnowledgeFileService knowledgeFileService;
     private final DocumentService documentService;
     
-    @Value("${file.preview-path:preview/}")
+    @Value("${file.preview-path:/app/preview/}")
     private String previewPath;
     
     @Value("${file.preview-mapping:/preview/}")
@@ -32,6 +29,8 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
 
     /**
      * 获取文件预览URL
+     * 
+     * 该方法负责将文档下载到预览目录，并返回Nginx可访问的URL
      *
      * @param documentId 文档ID
      * @return 文件预览响应，包含预览URL
@@ -54,10 +53,10 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         String safeFileName = documentId + "_" + fileName;
         
         // 创建预览目录
-        File previewDir = createPreviewDirectory();
+        createPreviewDirectory();
         
         // 构建文件保存路径
-        File previewFile = new File(previewDir, safeFileName);
+        File previewFile = new File(previewPath, safeFileName);
         
         // 如果文件已存在，直接返回URL（避免重复下载）
         if (previewFile.exists()) {
@@ -87,7 +86,7 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
      * 构建预览响应
      */
     private FilePreviewResp buildPreviewResponse(String documentId, String fileName, String safeFileName) {
-        // 构建预览URL
+        // 构建由Nginx代理的预览URL
         String previewUrl = previewMapping + safeFileName;
         
         // 获取文件类型
@@ -105,15 +104,9 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
     
     /**
      * 创建预览文件目录
-     * @return 预览目录对象
      */
-    private File createPreviewDirectory() {
+    private void createPreviewDirectory() {
         File directory = new File(previewPath);
-        if (!directory.isAbsolute()) {
-            // 如果是相对路径,转换为绝对路径
-            directory = new File(System.getProperty("user.dir"), previewPath);
-        }
-        
         if (!directory.exists()) {
             boolean created = directory.mkdirs();
             if (created) {
@@ -122,7 +115,6 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
                 log.warn("创建预览目录失败: {}", directory.getAbsolutePath());
             }
         }
-        return directory;
     }
     
     /**

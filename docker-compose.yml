@@ -13,6 +13,7 @@ services:
     volumes:
 #      - ./config/java:/app/config
       - ./log:/app/log
+      - ./preview:/app/preview
     environment:
       - JAVA_OPTS=${JAVA_OPTS}
       - BACKEND_PORT=${BACKEND_PORT}
@@ -69,6 +70,7 @@ services:
       - ./web/demo:/usr/share/nginx/html
       - ./log/nginx:/var/log/nginx
       - ./.env:/app/.env
+      - ./preview:/app/preview
     environment:
       - BACKEND_PORT=${BACKEND_PORT}
       - FRONTEND_PORT=${FRONTEND_PORT}

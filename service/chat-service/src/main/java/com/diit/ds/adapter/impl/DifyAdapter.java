@@ -283,7 +283,7 @@ public class DifyAdapter implements LLMAdapter {
         }
 
         // 获取四倍limit的数据
-        Map<String, Object> conversations = this.getConversations(user, lastId, limit * 4);
+        Map<String, Object> conversations = this.getConversations(user, lastId, 100); // 超过100dify报错
         
         // 获取原始数据列表
         List<Map<String, Object>> data = (List<Map<String, Object>>) conversations.get("data");
