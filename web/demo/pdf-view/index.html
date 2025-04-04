@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PDF Viewer</title>
+  <style>
+    iframe {
+      width: 100%;
+      height: 100vh;
+      border: none;
+    }
+  </style>
+</head>
+
+<body style="margin: 0px; overflow: hidden">
+  <div>
+    <iframe id="pdfIframe"></iframe>
+  </div>
+
+  <script>
+
+    var fileUrl = getUrlParam('fileUrl'); // 初始PDF文件路径
+    var keywords = '' // 初始关键词
+
+    var iframe = document.getElementById('pdfIframe');
+
+    // 设置初始 iframe 的 src
+    const setIframeSrc = () => {
+      var iframeSrc = `./pdfjs-4.3.136-dist/web/viewer.html?file=${encodeURIComponent(fileUrl)}&keyword=${encodeURIComponent(keywords)}`;
+      iframe.src = iframeSrc;
+    };
+
+    // 初次设置 iframe 的 src
+    setIframeSrc();
+
+    // 监听 postMessage 事件
+    window.addEventListener('message', (event) => {
+      debugger
+      if (event.data.fileUrl) {
+        fileUrl = event.data.fileUrl;
+        setIframeSrc(); // 更新 iframe 的 src
+      }
+      if (event.data.keywords) {
+        keywords = event.data.keywords;
+        searchKeyword(keywords)
+        // setIframeSrc(); // 重新加载高亮逻辑
+      }
+    });
+
+    function getUrlParam(name) {
+      // 处理特殊字符转义
+      name = name.replace(/[$$$$]/g, '\\$&');
+      // 优先尝试URLSearchParams API
+      if (window.URLSearchParams) {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(name);
+      }
+      // 传统浏览器降级方案
+      const regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)');
+      const results = regex.exec(window.location.href);
+      if (!results) return null;
+      if (!results[2]) return '';
+      // 处理URI编码和空格转换
+      return decodeURIComponent(results[2].replace(/\+/g, ' '));
+    }
+
+    // 定义搜索方法
+    function searchKeyword(keyword) {
+      var iframeWindow = document.getElementById('pdfIframe').contentWindow;
+      var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      // 获取 iframe 中的搜索 input
+      var searchInput = iframeDoc.querySelector('#findInput');
+      if (!iframeWindow || !searchInput) return;
+      // 将关键词赋值给 input
+      searchInput.value = keyword;
+      // 调用 pdf.js 的搜索方法
+      iframeWindow.PDFViewerApplication.eventBus.dispatch('find', {
+        type: '',
+        query: keyword,
+        highlightAll: true,
+      });
+    }
+  </script>
+</body>
+
+</html>
