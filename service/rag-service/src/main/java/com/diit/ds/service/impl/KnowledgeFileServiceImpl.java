@@ -9,6 +9,8 @@ import com.diit.ds.domain.resp.*;
 import com.diit.ds.exception.FileNotFoundException;
 import com.diit.ds.service.*;
 import com.diit.ds.util.PdfUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
     private final RAGFlowFileAPIService ragFlowFileAPIService;
     private final RagFlowFileChunkAPIService ragFlowFileChunkAPIService;
     private final ExecutorService executorService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 上传文件到指定知识库节点
@@ -262,46 +265,195 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
             return errorResp;
         }
 
-        // 获取数据集ID并调用RAGFlow API获取文件列表
-        String datasetId = treeNode.getKdbId();
-        RAGFlowFileListResp resp = ragFlowFileAPIService.listFiles(datasetId, req);
-
-        // 给文件列表添加用户名信息
-        if (resp != null && resp.getCode() == 0 && resp.getData() != null && 
-                resp.getData().getDocs() != null && !resp.getData().getDocs().isEmpty()) {
+        // 获取数据集ID
+//        String datasetId = treeNode.getKdbId();
+        List<String> kbIds = knowledgeTreeNodeService.getKbIdsByPid(treeNodeId);
+        
+        // 创建响应对象
+        RAGFlowFileListResp resp = new RAGFlowFileListResp();
+        resp.setCode(0);
+        resp.setMessage(null);
+        
+        // 构建查询条件
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Document> page = 
+            new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(
+                req.getPage() != null ? req.getPage() : 1, 
+                req.getPageSize() != null ? req.getPageSize() : 10
+            );
+        
+        // 创建查询条件构造器
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Document> queryWrapper = 
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        
+        // 设置数据集ID条件
+        queryWrapper.in(Document::getKbId, kbIds);
+        
+        // 添加其他查询条件
+        if (req.getId() != null && !req.getId().isEmpty()) {
+            queryWrapper.eq(Document::getId, req.getId());
+        }
+        
+        if (req.getName() != null && !req.getName().isEmpty()) {
+            queryWrapper.like(Document::getName, req.getName());
+        }
+        
+        if (req.getKeywords() != null && !req.getKeywords().isEmpty()) {
+            queryWrapper.and(wrapper -> {
+                wrapper.like(Document::getName, req.getKeywords())
+                       .or()
+                       .like(Document::getLocation, req.getKeywords());
+            });
+        }
+        
+        // 设置排序
+        if (req.getOrderby() != null && !req.getOrderby().isEmpty()) {
+            String orderBy = req.getOrderby();
+            boolean isDesc = req.getDesc() != null && req.getDesc();
             
-            // 收集所有文档ID
-            List<String> documentIds = resp.getData().getDocs().stream()
-                    .map(RAGFlowFileListResp.FileInfo::getId)
-                    .collect(Collectors.toList());
-            
-            try {
-                // 批量查询文档信息
-                List<Document> documents = documentService.lambdaQuery()
-                        .in(Document::getId, documentIds)
-                        .list();
-                
-                // 创建ID到用户名的映射
-                Map<String, String> documentIdToUsername = documents.stream()
-                        .filter(doc -> doc.getUsername() != null && !doc.getUsername().isEmpty())
-                        .collect(Collectors.toMap(Document::getId, Document::getUsername));
-                
-                // 将用户名信息添加到文件列表
-                resp.getData().getDocs().forEach(fileInfo -> {
-                    String username = documentIdToUsername.get(fileInfo.getId());
-                    if (username != null) {
-                        fileInfo.setUsername(username);
+            switch (orderBy) {
+                case "create_time":
+                    if (isDesc) {
+                        queryWrapper.orderByDesc(Document::getCreateTime);
+                    } else {
+                        queryWrapper.orderByAsc(Document::getCreateTime);
                     }
-
-                });
-                
-                log.debug("文件列表添加用户名信息成功，处理文件数: {}", resp.getData().getDocs().size());
-            } catch (Exception e) {
-                log.error("给文件列表添加用户名信息失败: {}", e.getMessage(), e);
+                    break;
+                case "update_time":
+                    if (isDesc) {
+                        queryWrapper.orderByDesc(Document::getUpdateTime);
+                    } else {
+                        queryWrapper.orderByAsc(Document::getUpdateTime);
+                    }
+                    break;
+                default:
+                    queryWrapper.orderByDesc(Document::getCreateTime);
+                    break;
+            }
+        } else {
+            queryWrapper.orderByDesc(Document::getCreateTime);
+        }
+        
+        // 执行分页查询
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Document> result = 
+            documentService.page(page, queryWrapper);
+        
+        // 构造响应数据
+        RAGFlowFileListResp.FileListData fileListData = new RAGFlowFileListResp.FileListData();
+        fileListData.setTotal((int) result.getTotal());
+        
+        List<RAGFlowFileListResp.FileInfo> fileInfoList = new ArrayList<>();
+        
+        // 转换Document实体到FileInfo
+        for (Document document : result.getRecords()) {
+            RAGFlowFileListResp.FileInfo fileInfo = convertDocumentToFileInfo(document);
+            fileInfoList.add(fileInfo);
+        }
+        
+        fileListData.setDocs(fileInfoList);
+        resp.setData(fileListData);
+        
+        return resp;
+    }
+    
+    /**
+     * 将Document实体转换为FileInfo对象
+     * 
+     * @param document 文档实体
+     * @return FileInfo对象
+     */
+    private RAGFlowFileListResp.FileInfo convertDocumentToFileInfo(Document document) {
+        RAGFlowFileListResp.FileInfo fileInfo = new RAGFlowFileListResp.FileInfo();
+        
+        fileInfo.setId(document.getId());
+        fileInfo.setName(document.getName());
+        fileInfo.setLocation(document.getLocation());
+        fileInfo.setSize(document.getSize().longValue());
+        fileInfo.setType(document.getType());
+        fileInfo.setThumbnail(document.getThumbnail());
+        fileInfo.setCreatedBy(document.getCreatedBy());
+        fileInfo.setUsername(document.getUsername());
+        fileInfo.setStatus(document.getStatus());
+        
+        // 解析JSON格式的Parser Config
+        try {
+            if (document.getParserConfig() != null && !document.getParserConfig().isEmpty()) {
+                Map<String, Object> parserConfig = objectMapper.readValue(
+                    document.getParserConfig(), 
+                    new TypeReference<Map<String, Object>>() {}
+                );
+                fileInfo.setParserConfig(parserConfig);
+            }
+        } catch (Exception e) {
+            log.error("解析Parser Config失败: {}", e.getMessage(), e);
+        }
+        
+        fileInfo.setCreateTime(document.getCreateTime());
+        fileInfo.setUpdateTime(document.getUpdateTime());
+        
+        // 转换日期格式为标准GMT格式
+        if (document.getCreateDate() != null) {
+            String createDateStr = new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", java.util.Locale.US)
+                    .format(document.getCreateDate());
+            fileInfo.setCreateDate(createDateStr);
+        }
+        
+        if (document.getUpdateDate() != null) {
+            String updateDateStr = new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", java.util.Locale.US)
+                    .format(document.getUpdateDate());
+            fileInfo.setUpdateDate(updateDateStr);
+        }
+        
+        fileInfo.setProgress(document.getProgress());
+        
+        // 将数字状态转换为文本状态
+        if (document.getRun() != null) {
+            switch (document.getRun()) {
+                case "0":
+                    fileInfo.setRun("UNSTART");
+                    break;
+                case "1":
+                    fileInfo.setRun("RUNNING");
+                    break;
+                case "2":
+                    fileInfo.setRun("CANCEL");
+                    break;
+                case "3":
+                    fileInfo.setRun("DONE");
+                    break;
+                case "4":
+                    fileInfo.setRun("FAIL");
+                    break;
+                default:
+                    fileInfo.setRun(document.getRun());
+                    break;
             }
         }
-
-        return resp;
+        
+        fileInfo.setProgressMsg(document.getProgressMsg());
+        fileInfo.setSourceType(document.getSourceType());
+        
+        // 将chunkNum映射到chunkCount
+        fileInfo.setChunkCount(document.getChunkNum());
+        
+        // 将tokenNum映射到tokenCount
+        fileInfo.setTokenCount(document.getTokenNum());
+        
+        // 处理处理时间，格式化为GMT格式
+        if (document.getProcessBeginAt() != null) {
+            String processBeginAtStr = new java.text.SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss zzz", java.util.Locale.US)
+                    .format(document.getProcessBeginAt());
+            fileInfo.setProcessBeginAt(processBeginAtStr);
+        }
+        
+        fileInfo.setProcessDuation(document.getProcessDuation());
+        
+        // 知识库ID
+        fileInfo.setKnowledgebaseId(document.getKbId());
+        
+        // 设置分块方法为naive
+        fileInfo.setChunkMethod("naive");
+        
+        return fileInfo;
     }
 
     /**

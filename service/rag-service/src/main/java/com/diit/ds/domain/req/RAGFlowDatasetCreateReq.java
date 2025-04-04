@@ -106,13 +106,13 @@ public class RAGFlowDatasetCreateReq {
          * 是否进行自动关键词提取，默认为0
          */
         @JsonProperty("auto_keywords")
-        private Integer autoKeywords = 0;
+        private Integer autoKeywords = 5;
 
         /**
          * 是否进行问题提取，默认为0
          */
         @JsonProperty("auto_questions")
-        private Integer autoQuestions = 0;
+        private Integer autoQuestions = 2;
 
         /**
          * 分块token数量，默认为512

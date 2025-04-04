@@ -261,6 +261,14 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         return listByIds(ids);
     }
 
+    @Override
+    public List<String> getKbIdsByPid(String pid) {
+        return getNodesByPid(pid).stream()
+                .map(KnowledgeTreeNode::getKdbId)
+                .filter(kdbId -> kdbId != null && !kdbId.isEmpty())
+                .collect(Collectors.toList());
+    }
+
     /**
      * 递归收集某节点下的所有子孙节点ID
      * @param parentId 父节点ID
