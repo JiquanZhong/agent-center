@@ -43,6 +43,12 @@ public class KnowledgeTreeNodeDTO {
     private String description;
 
     /**
+     * 文档数量
+     */
+    @JsonProperty("document_num")
+    private Integer documentNum;
+
+    /**
      * 子节点
      */
     private List<KnowledgeTreeNodeDTO> children;

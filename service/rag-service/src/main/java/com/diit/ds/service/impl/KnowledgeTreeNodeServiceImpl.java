@@ -25,6 +25,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
+
+import com.diit.ds.service.DocumentService;
 
 /**
 * @author test
@@ -38,6 +42,7 @@ import java.util.stream.Collectors;
 public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeMapper, KnowledgeTreeNode> implements KnowledgeTreeNodeService {
 
     private final RAGFlowDBAPIService ragFlowDBAPIService;
+    private final DocumentService documentService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -140,6 +145,10 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             throw new RuntimeException("找不到知识树节点或其RAGFlow数据集ID为空");
         }
         
+        // 获取当前节点的父节点ID和文档数量
+        String parentId = node.getPid();
+        Integer documentNum = node.getDocumentNum() != null ? node.getDocumentNum() : 0;
+        
         // 获取当前节点及其所有子孙节点的ID
         List<String> allNodeIds = getIdsByPid(id);
         
@@ -168,6 +177,18 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             removeByIds(allNodeIds);
             log.info("知识树节点及其子节点删除成功，根节点ID: {}, 删除节点总数: {}, RAGFlow数据集ID列表: {}", 
                     id, allNodeIds.size(), allKdbIds);
+            
+            // 更新父节点的文档数量
+            if (parentId != null && !parentId.isEmpty() && !parentId.equals("0") && documentNum > 0) {
+                try {
+                    // 减少父节点及其父节点的文档数量
+                    updateNodeAndParentsDocumentNum(parentId, -documentNum);
+                    log.info("已更新父节点[{}]及其父节点的文档数量，减少文档数: {}", parentId, documentNum);
+                } catch (Exception e) {
+                    log.error("更新父节点文档数量失败: {}", e.getMessage(), e);
+                }
+            }
+            
             return node.getId();
         } else {
             log.error("删除RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
@@ -188,6 +209,19 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         if (nodes.isEmpty()) {
             log.error("删除失败：找不到指定ID的知识树节点，节点ID列表: {}", ids);
             throw new RuntimeException("找不到指定ID的知识树节点");
+        }
+        
+        // 记录每个父节点需要减少的文档数量
+        Map<String, Integer> parentDocumentNumMap = new HashMap<>();
+        for (KnowledgeTreeNode node : nodes) {
+            String parentId = node.getPid();
+            if (parentId != null && !parentId.isEmpty() && !parentId.equals("0")) {
+                Integer documentNum = node.getDocumentNum() != null ? node.getDocumentNum() : 0;
+                if (documentNum > 0) {
+                    parentDocumentNumMap.put(parentId, 
+                            parentDocumentNumMap.getOrDefault(parentId, 0) + documentNum);
+                }
+            }
         }
         
         // 提取所有有效的kdb_id
@@ -213,6 +247,21 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             // 从数据库中批量删除记录
             removeByIds(ids);
             log.info("批量删除知识树节点成功，节点ID列表: {}, RAGFlow数据集ID列表: {}", ids, kdbIds);
+            
+            // 更新所有受影响的父节点的文档数量
+            for (Map.Entry<String, Integer> entry : parentDocumentNumMap.entrySet()) {
+                String parentId = entry.getKey();
+                Integer documentNum = entry.getValue();
+                
+                try {
+                    // 减少父节点及其父节点的文档数量
+                    updateNodeAndParentsDocumentNum(parentId, -documentNum);
+                    log.info("已更新父节点[{}]及其父节点的文档数量，减少文档数: {}", parentId, documentNum);
+                } catch (Exception e) {
+                    log.error("更新父节点[{}]文档数量失败: {}", parentId, e.getMessage(), e);
+                }
+            }
+            
             return ids;
         } else {
             log.error("批量删除RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
@@ -342,6 +391,15 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         // 节点排序（如果sortOrder字段有值）
         sortTree(root);
         
+        // 计算虚拟根节点的文档数量（所有节点文档数量的总和）
+        int totalDocumentNum = 0;
+        for (KnowledgeTreeNodeDTO childNode : root.getChildren()) {
+            if (childNode.getDocumentNum() != null) {
+                totalDocumentNum += childNode.getDocumentNum();
+            }
+        }
+        root.setDocumentNum(totalDocumentNum);
+        
         return root;
     }
 
@@ -367,6 +425,117 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             for (KnowledgeTreeNodeDTO child : node.getChildren()) {
                 sortTree(child);
             }
+        }
+    }
+
+    @Override
+    public void updateAllNodesDocumentNum() {
+        log.info("开始更新所有节点的文档数量");
+        try {
+            // 获取所有根节点
+            List<KnowledgeTreeNode> rootNodes = lambdaQuery()
+                    .eq(KnowledgeTreeNode::getPid, "0")
+                    .list();
+            
+            // 递归更新每个根节点及其子节点的文档数量
+            for (KnowledgeTreeNode rootNode : rootNodes) {
+                updateNodeDocumentNum(rootNode.getId());
+            }
+            log.info("所有节点的文档数量更新完成");
+        } catch (Exception e) {
+            log.error("更新所有节点文档数量失败", e);
+            throw new RuntimeException("更新所有节点文档数量失败: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Integer updateNodeDocumentNum(String nodeId) {
+        log.info("开始更新节点[{}]的文档数量", nodeId);
+        try {
+            // 获取节点信息
+            KnowledgeTreeNode node = getById(nodeId);
+            if (node == null) {
+                log.error("找不到指定ID的知识树节点, 节点ID: {}", nodeId);
+                return 0;
+            }
+            
+            // 获取该节点自身的文档数量
+            Integer ownDocumentNum = 0;
+            if (node.getKdbId() != null && !node.getKdbId().isEmpty()) {
+                ownDocumentNum = documentService.countDocumentsByKbId(node.getKdbId());
+            }
+            
+            // 获取所有子节点
+            List<KnowledgeTreeNode> childNodes = lambdaQuery()
+                    .eq(KnowledgeTreeNode::getPid, nodeId)
+                    .list();
+            
+            // 如果没有子节点，则文档数量就是自身的文档数量
+            if (childNodes.isEmpty()) {
+                // 更新节点的文档数量
+                node.setDocumentNum(ownDocumentNum);
+                updateById(node);
+                log.info("节点[{}]没有子节点，文档数量设为自身文档数: {}", nodeId, ownDocumentNum);
+                return ownDocumentNum;
+            }
+            
+            // 递归计算所有子节点的文档数量
+            Integer childrenDocumentNum = 0;
+            for (KnowledgeTreeNode childNode : childNodes) {
+                childrenDocumentNum += updateNodeDocumentNum(childNode.getId());
+            }
+            
+            // 计算总文档数量（自身文档数量 + 子节点文档数量）
+            Integer totalDocumentNum = ownDocumentNum + childrenDocumentNum;
+            
+            // 更新节点的文档数量
+            node.setDocumentNum(totalDocumentNum);
+            updateById(node);
+            
+            log.info("节点[{}]的文档数量更新完成，自身文档数: {}，子节点文档数: {}，总文档数: {}", 
+                    nodeId, ownDocumentNum, childrenDocumentNum, totalDocumentNum);
+            return totalDocumentNum;
+        } catch (Exception e) {
+            log.error("更新节点[{}]文档数量失败", nodeId, e);
+            throw new RuntimeException("更新节点文档数量失败: " + e.getMessage());
+        }
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void updateNodeAndParentsDocumentNum(String nodeId, Integer documentNumDelta) {
+        if (nodeId == null || nodeId.isEmpty() || nodeId.equals("0") || documentNumDelta == 0) {
+            return;
+        }
+        
+        log.info("开始更新节点[{}]及其所有父节点的文档数量，变化值: {}", nodeId, documentNumDelta);
+        try {
+            // 获取当前节点
+            KnowledgeTreeNode node = getById(nodeId);
+            if (node == null) {
+                log.error("找不到指定ID的知识树节点, 节点ID: {}", nodeId);
+                return;
+            }
+            
+            // 更新当前节点的文档数量
+            Integer currentDocumentNum = node.getDocumentNum() != null ? node.getDocumentNum() : 0;
+            Integer newDocumentNum = currentDocumentNum + documentNumDelta;
+            // 确保文档数量不会小于0
+            newDocumentNum = Math.max(0, newDocumentNum);
+            
+            node.setDocumentNum(newDocumentNum);
+            updateById(node);
+            log.info("更新节点[{}]的文档数量: {} -> {}", nodeId, currentDocumentNum, newDocumentNum);
+            
+            // 如果有父节点，递归更新父节点
+            String pid = node.getPid();
+            if (pid != null && !pid.isEmpty() && !pid.equals("0")) {
+                updateNodeAndParentsDocumentNum(pid, documentNumDelta);
+            }
+        } catch (Exception e) {
+            log.error("更新节点[{}]及其父节点文档数量失败", nodeId, e);
+            throw new RuntimeException("更新节点及其父节点文档数量失败: " + e.getMessage());
         }
     }
 }

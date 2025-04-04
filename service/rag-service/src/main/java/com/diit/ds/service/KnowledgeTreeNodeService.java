@@ -34,5 +34,23 @@ public interface KnowledgeTreeNodeService extends IService<KnowledgeTreeNode> {
     List<String> getKbIdsByPid(String pid);
 
     KnowledgeTreeNodeDTO getTreeNodeDTO();
-
+    
+    /**
+     * 更新所有节点的文档数量
+     */
+    void updateAllNodesDocumentNum();
+    
+    /**
+     * 计算并更新指定节点的文档数量
+     * @param nodeId 节点ID
+     * @return 更新后的文档数量
+     */
+    Integer updateNodeDocumentNum(String nodeId);
+    
+    /**
+     * 更新节点及其所有父节点的文档数量
+     * @param nodeId 节点ID
+     * @param documentNumDelta 文档数量的变化值，正数表示增加，负数表示减少
+     */
+    void updateNodeAndParentsDocumentNum(String nodeId, Integer documentNumDelta);
 }

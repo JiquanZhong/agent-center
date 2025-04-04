@@ -6,4 +6,4 @@ logging:
     org.mybatis.spring: warn
     org.apache.ibatis: warn
     org.apache.ibatis.logging.jdbc.BaseJdbcLogger: warn
-    com.diit.ds.mapper: debug
+    com.diit.ds.mapper: warn

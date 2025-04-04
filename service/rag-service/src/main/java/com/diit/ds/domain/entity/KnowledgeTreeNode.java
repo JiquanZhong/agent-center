@@ -79,4 +79,10 @@ public class KnowledgeTreeNode {
      */
     @TableField("description")
     private String description;
+
+    /**
+     * 文档数量
+     */
+    @TableField("document_num")
+    private Integer documentNum;
 }

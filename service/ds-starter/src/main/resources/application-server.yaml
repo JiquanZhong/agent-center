@@ -1,5 +1,5 @@
 server:
-  port: 9091
+  port: 9092
   tomcat:
     connection-timeout: 5000000
     max-swallow-size: 100MB

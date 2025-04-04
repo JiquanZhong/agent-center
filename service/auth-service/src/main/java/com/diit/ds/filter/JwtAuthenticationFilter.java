@@ -56,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
             // 检查是否是不需要认证的接口
-            if (!isNotNeedAuthEndpoint(request)) {
+            if (isNotNeedAuthEndpoint(request)) {
                 log.debug("跳过认证: {} {}", request.getMethod(), request.getRequestURI());
                 filterChain.doFilter(request, response);
                 return;

@@ -20,6 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -198,8 +199,20 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
                     log.error("批量更新文档用户名失败: {}", e.getMessage(), e);
                 }
             }
+            
         }
-        
+
+        // 更新节点及其父节点的文档数量
+        try {
+            // 增加的文档数量
+            int addedDocumentCount = uploadResp.getData().size();
+            // 更新当前节点及其父节点的文档数量
+            knowledgeTreeNodeService.updateNodeAndParentsDocumentNum(treeNodeId, addedDocumentCount);
+            log.info("已更新节点[{}]及其父节点的文档数量，增加文档数: {}", treeNodeId, addedDocumentCount);
+        } catch (Exception e) {
+            log.error("更新节点文档数量失败: {}", e.getMessage(), e);
+        }
+
         return uploadResp;
     }
 
@@ -467,7 +480,11 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
     @Override
     public RAGFlowFileDeleteResp deleteFiles(RAGFlowFileDeleteReq req) {
         RAGFlowFileDeleteResp resp = null;
-        // 遍历要删除的文档ID
+        
+        // 用于记录每个节点需要减少的文档数量
+        Map<String, Integer> nodeDocumentCountMap = new HashMap<>();
+        
+        // 先获取每个文档对应的知识树节点ID，用于后续更新文档数量
         for (String documentId : req.getIds()) {
             // 查询文档信息
             Document document = documentService.lambdaQuery()
@@ -482,12 +499,41 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
 
             // 获取数据集ID
             String datasetId = document.getKbId();
-
+            if (datasetId == null) {
+                continue;
+            }
+            
+            // 找到对应的知识树节点
+            KnowledgeTreeNode treeNode = knowledgeTreeNodeService.lambdaQuery()
+                    .eq(KnowledgeTreeNode::getKdbId, datasetId)
+                    .one();
+            
+            if (treeNode != null) {
+                // 记录该节点需要减少的文档数量
+                String nodeId = treeNode.getId();
+                nodeDocumentCountMap.put(nodeId, nodeDocumentCountMap.getOrDefault(nodeId, 0) + 1);
+            }
+            
             // 调用RAGFlow API删除文件
             if (datasetId != null) {
                 resp = ragFlowFileAPIService.deleteFiles(datasetId, req);
             }
         }
+        
+        // 更新各节点及其父节点的文档数量
+        for (Map.Entry<String, Integer> entry : nodeDocumentCountMap.entrySet()) {
+            String nodeId = entry.getKey();
+            Integer count = entry.getValue();
+            
+            try {
+                // 更新当前节点及其父节点的文档数量（减少）
+                knowledgeTreeNodeService.updateNodeAndParentsDocumentNum(nodeId, -count);
+                log.info("已更新节点[{}]及其父节点的文档数量，减少文档数: {}", nodeId, count);
+            } catch (Exception e) {
+                log.error("更新节点[{}]文档数量失败: {}", nodeId, e.getMessage(), e);
+            }
+        }
+        
         return resp;
     }
 

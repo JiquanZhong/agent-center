@@ -22,6 +22,14 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
                 .one()
                 .getKbId();
     }
+    
+    @Override
+    public Integer countDocumentsByKbId(String kbId) {
+        return lambdaQuery()
+                .eq(Document::getKbId, kbId)
+                .count()
+                .intValue();
+    }
 }
 
 

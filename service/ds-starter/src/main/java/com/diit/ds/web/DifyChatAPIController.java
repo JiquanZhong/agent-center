@@ -1,6 +1,5 @@
 package com.diit.ds.web;
 
-import com.diit.ds.annotation.NotNeedAuth;
 import com.diit.ds.service.LLMService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

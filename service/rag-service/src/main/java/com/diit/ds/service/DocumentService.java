@@ -13,5 +13,12 @@ import com.baomidou.mybatisplus.extension.service.IService;
 public interface DocumentService extends IService<Document> {
 
     String getDatasetId(String documentId);
+    
+    /**
+     * 根据知识库ID获取文档数量
+     * @param kbId 知识库ID
+     * @return 文档数量
+     */
+    Integer countDocumentsByKbId(String kbId);
 
 }
