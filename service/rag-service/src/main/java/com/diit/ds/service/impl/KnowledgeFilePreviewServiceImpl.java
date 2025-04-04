@@ -59,10 +59,10 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         File previewFile = new File(previewPath, safeFileName);
         
         // 如果文件已存在，直接返回URL（避免重复下载）
-        if (previewFile.exists()) {
-            log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
-            return buildPreviewResponse(documentId, fileName, safeFileName);
-        }
+        // if (previewFile.exists()) {
+        //     log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
+        //     return buildPreviewResponse(documentId, fileName, safeFileName);
+        // }
         
         try (FileOutputStream outputStream = new FileOutputStream(previewFile)) {
             // 调用KnowledgeFileService下载文件到预览目录
