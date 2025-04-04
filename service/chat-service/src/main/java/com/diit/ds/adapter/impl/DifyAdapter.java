@@ -234,7 +234,22 @@ public class DifyAdapter implements LLMAdapter {
                     Map.class
             );
 
-            return response.getBody();
+            // 处理消息排序，确保新消息排在后，旧的消息排在前面
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                List<Map<String, Object>> messages = (List<Map<String, Object>>) responseBody.get("data");
+                if (messages != null && !messages.isEmpty()) {
+                    // 按created_at字段降序排序（新消息在前）
+                    messages.sort((m1, m2) -> {
+                        Long time1 = m1.containsKey("created_at") ? Long.valueOf(m1.get("created_at").toString()) : 0L;
+                        Long time2 = m2.containsKey("created_at") ? Long.valueOf(m2.get("created_at").toString()) : 0L;
+                        return time1.compareTo(time2); // 降序排列
+                    });
+                    responseBody.put("data", messages);
+                }
+            }
+
+            return responseBody;
         } catch (Exception e) {
             log.error("获取消息列表失败", e);
             throw new RuntimeException("获取消息列表失败: " + e.getMessage());
