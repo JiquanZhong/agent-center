@@ -113,7 +113,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
                         String ext = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
                         
                         // 如果已经是PDF，直接返回
-                        if (ext.equals("pdf")) {
+                        if (ext.equals("pdf") || ext.equals("xlsx")) {
                             return file;
                         }
                         

@@ -97,4 +97,12 @@ public class KnowledgeController {
             return ResponseEntity.noContent().build();
         }
     }
+
+    @Operation(summary = "更新所有节点的文档数量", description = "更新所有知识树节点的文档数量")
+    @PostMapping("/updateDocNum")
+    @Deprecated
+    public ResponseEntity<?> updateAllNodesDocumentNum() {
+        knowledgeTreeNodeService.updateAllNodesDocumentNum();
+        return ResponseEntity.status(HttpStatus.OK).body("更新成功");
+    }
 }

@@ -5,6 +5,8 @@ import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
 import com.diit.ds.structmapper.DifyKnowledgeRespSM;
 import com.diit.ds.structmapper.KnowledgeTreeNodeSM;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @RestController
 @RequestMapping("/ragflow/api/knowledge")
+@Tag(name = "知识库知识查询", description = "Dify使用的知识库相关接口")
 public class RAGFlow2DifyKnowledgeController {
 
     private final DifyKnowledgeService difyKnowledgeService;
@@ -34,6 +37,7 @@ public class RAGFlow2DifyKnowledgeController {
      * @return 检索结果
      */
     @PostMapping("/retrieval")
+    @Operation(summary = "适配Dify外部知识库的接口", description = "直接适配Dify外部知识库的接口")
     public DifyKnowledgeResp retrieveKnowledge(@RequestBody DifyKnowledgeReq req) {
         log.info("接收到知识库检索请求: {}", req);
         DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);
@@ -48,6 +52,7 @@ public class RAGFlow2DifyKnowledgeController {
      * @return 检索结果
      */
     @PostMapping("/retrievalSimple")
+    @Operation(summary = "通过Http调用实现的知识查询接口", description = "需要创建Http调用")
     public List<DifyKnowledgeResp.SimpleRecord> retrieveKnowledgeSimple(@RequestBody DifyKnowledgeReq req) {
         log.info("接收到知识库检索请求: {}", req);
         DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);

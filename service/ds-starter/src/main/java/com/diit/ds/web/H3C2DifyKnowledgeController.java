@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 @RestController
 @RequestMapping("/h3c/api/knowledge")
-@Tag(name = "知识库API", description = "Dify外接H3C知识库API")
+@Tag(name = "知识库新华三API", description = "Dify外接H3C知识库API")
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS}, allowCredentials = "false")
 public class H3C2DifyKnowledgeController {
 
