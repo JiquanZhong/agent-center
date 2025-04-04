@@ -251,18 +251,20 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
      */
     @Override
     public RAGFlowFileListResp listFiles(String treeNodeId, RAGFlowFileListReq req) {
-        // 查询知识库节点信息
-        KnowledgeTreeNode treeNode = knowledgeTreeNodeService.lambdaQuery()
-                .eq(KnowledgeTreeNode::getId, treeNodeId)
-                .one();
-        
-        // 检查节点是否存在
-        if (treeNode == null) {
-            log.error("未找到指定的知识库节点: {}", treeNodeId);
-            RAGFlowFileListResp errorResp = new RAGFlowFileListResp();
-            errorResp.setCode(404);
-            errorResp.setMessage("未找到指定的知识库节点");
-            return errorResp;
+        if (!treeNodeId.equals("0")) {
+            // 查询知识库节点信息
+            KnowledgeTreeNode treeNode = knowledgeTreeNodeService.lambdaQuery()
+                    .eq(KnowledgeTreeNode::getId, treeNodeId)
+                    .one();
+
+            // 检查节点是否存在
+            if (treeNode == null) {
+                log.error("未找到指定的知识库节点: {}", treeNodeId);
+                RAGFlowFileListResp errorResp = new RAGFlowFileListResp();
+                errorResp.setCode(404);
+                errorResp.setMessage("未找到指定的知识库节点");
+                return errorResp;
+            }
         }
 
         // 获取数据集ID
