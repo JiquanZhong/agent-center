@@ -1,6 +1,8 @@
 package com.diit.ds.web;
 
+import com.diit.ds.domain.req.DifyKnowledgeHttpReq;
 import com.diit.ds.domain.req.DifyKnowledgeReq;
+import com.diit.ds.domain.resp.DifyKnowledgeHttpResp;
 import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
 import com.diit.ds.structmapper.DifyKnowledgeRespSM;
@@ -53,11 +55,11 @@ public class RAGFlow2DifyKnowledgeController {
      */
     @PostMapping("/retrievalSimple")
     @Operation(summary = "通过Http调用实现的知识查询接口", description = "需要创建Http调用")
-    public List<DifyKnowledgeResp.SimpleRecord> retrieveKnowledgeSimple(@RequestBody DifyKnowledgeReq req) {
+    public List<DifyKnowledgeHttpResp.SimpleRecord> retrieveKnowledgeSimple(@RequestBody DifyKnowledgeHttpReq req) {
         log.info("接收到知识库检索请求: {}", req);
-        DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);
+        DifyKnowledgeHttpResp resp = difyKnowledgeService.retrieveKnowledgeHttp(req);
         log.info("知识库检索结果数量: {}", resp.getRecords() != null ? resp.getRecords().size() : 0);
 
-        return resp.getRecords().stream().map(DifyKnowledgeRespSM.INSTANCE::toSimpleRecord).collect(Collectors.toList());
+        return resp.getRecords();
     }
 } 

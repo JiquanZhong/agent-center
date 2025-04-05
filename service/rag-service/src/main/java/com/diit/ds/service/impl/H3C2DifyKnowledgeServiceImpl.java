@@ -1,9 +1,11 @@
 package com.diit.ds.service.impl;
 
 import com.diit.ds.config.H3CKnowledgeConfig;
+import com.diit.ds.domain.req.DifyKnowledgeHttpReq;
 import com.diit.ds.domain.req.DifyKnowledgeReq;
 import com.diit.ds.domain.req.H3CAuthReq;
 import com.diit.ds.domain.req.H3CKnowledgeReq;
+import com.diit.ds.domain.resp.DifyKnowledgeHttpResp;
 import com.diit.ds.domain.resp.DifyKnowledgeResp;
 import com.diit.ds.domain.resp.H3CKnowledgeResp;
 import com.diit.ds.service.DifyKnowledgeService;
@@ -72,7 +74,12 @@ public class H3C2DifyKnowledgeServiceImpl implements DifyKnowledgeService {
             return new DifyKnowledgeResp();
         }
     }
-    
+
+    @Override
+    public DifyKnowledgeHttpResp retrieveKnowledgeHttp(DifyKnowledgeHttpReq req) {
+        return null;
+    }
+
     /**
      * 构建H3C知识库请求
      */
