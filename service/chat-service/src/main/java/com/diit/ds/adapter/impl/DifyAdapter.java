@@ -245,7 +245,15 @@ public class DifyAdapter implements LLMAdapter {
                         Long time2 = m2.containsKey("created_at") ? Long.valueOf(m2.get("created_at").toString()) : 0L;
                         return time1.compareTo(time2); // 降序排列
                     });
-                    responseBody.put("data", messages);
+                    // 过滤掉answer为空字符串的消息和error有值的消息
+                    List<Map<String, Object>> filteredMessages = messages.stream()
+                            .filter(message -> {
+                                Object answer = message.get("answer");
+                                Object error = message.get("error");
+                                return answer != null && !answer.toString().isEmpty() && (error == null || error.toString().isEmpty());
+                            })
+                            .collect(java.util.stream.Collectors.toList());
+                    responseBody.put("data", filteredMessages);
                 }
             }
 
