@@ -105,7 +105,7 @@ public class WorkflowChunk {
     private Double vectorSimilarity;
 
     /**
-     * 位置信息(JSON数组)
+     * 位置信息(二维数组)
      */
     @TableField(value = "positions")
     private Object positions;

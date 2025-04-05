@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/preview")
 @RequiredArgsConstructor
+@Slf4j
 public class KnowledgeFilePreviewController {
 
     private final KnowledgeFilePreviewService knowledgeFilePreviewService;
@@ -41,4 +43,26 @@ public class KnowledgeFilePreviewController {
             return ResponseEntity.badRequest().build();
         }
     }
+
+    /**
+     * 获取知识查询信息
+     *
+     * @param workFlowRunId 工作流运行ID
+     * @return 知识查询结果，包含文档片段和文件信息
+     */
+    @Operation(summary = "获取知识查询信息", description = "根据工作流运行ID获取知识查询相关信息")
+    @GetMapping("/knowledge/{workFlowRunId}")
+    public ResponseEntity<?> getKnowledgeQueryInfo(
+            @Parameter(description = "工作流运行ID", required = true)
+            @PathVariable String workFlowRunId) {
+        try {
+            com.diit.ds.domain.dto.KnowledgeSearchResultDTO resultDTO = 
+                knowledgeFilePreviewService.getKnowledgeQueryInfo(workFlowRunId);
+            return ResponseEntity.ok(resultDTO);
+        } catch (Exception e) {
+            log.error("获取知识查询信息失败: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body("获取知识查询信息失败: " + e.getMessage());
+        }
+    }
+    
 }
