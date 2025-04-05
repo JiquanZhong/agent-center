@@ -54,8 +54,8 @@ public class RestTemplateConfig {
         };
 
         // 设置超时
-        factory.setConnectTimeout(15000);
-        factory.setReadTimeout(15000);
+        factory.setConnectTimeout(120000);
+        factory.setReadTimeout(120000);
 
         return new RestTemplate(factory);
     }
@@ -63,9 +63,9 @@ public class RestTemplateConfig {
     private ClientHttpRequestFactory clientHttpRequestFactory() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         // 设置连接超时时间（毫秒）
-        factory.setConnectTimeout(15000);
+        factory.setConnectTimeout(120000);
         // 设置读取超时时间（毫秒）
-        factory.setReadTimeout(15000);
+        factory.setReadTimeout(120000);
         return factory;
     }
 } 
