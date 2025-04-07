@@ -59,7 +59,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         // 检查API调用结果
         if (resp != null && resp.getCode() == 0 && resp.getData() != null) {
             // 查询父节点信息
-            if (knowledgeTreeNode.getPid() == null || knowledgeTreeNode.getPid().isEmpty()) {
+            if (knowledgeTreeNode.getPid() == null || knowledgeTreeNode.getPid().isEmpty() || "0".equals(knowledgeTreeNode.getPid())) {
                 knowledgeTreeNode.setPid("0");
                 knowledgeTreeNode.setLevel(1);
             } else {

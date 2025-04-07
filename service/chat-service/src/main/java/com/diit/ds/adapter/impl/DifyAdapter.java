@@ -2,6 +2,7 @@ package com.diit.ds.adapter.impl;
 
 import com.diit.ds.adapter.LLMAdapter;
 import com.diit.ds.config.DifyConfig;
+import com.diit.ds.service.MessagesService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class DifyAdapter implements LLMAdapter {
     private final RestTemplate restTemplate;
     private final ExecutorService executorService;
     private final DifyConfig difyConfig;
+    private final MessagesService messagesService;
     @Value("${dify.api.base-url:http://192.168.11.205}")
     private String difyBaseUrl;
 
@@ -254,6 +256,35 @@ public class DifyAdapter implements LLMAdapter {
                             })
                             .collect(java.util.stream.Collectors.toList());
                     responseBody.put("data", filteredMessages);
+                    
+                    try {
+                        // 收集所有消息ID，以便在数据库中查询对应的workflowRunId
+                        if (!filteredMessages.isEmpty()) {
+                            List<String> messageIds = filteredMessages.stream()
+                                    .map(message -> message.get("id").toString())
+                                    .collect(java.util.stream.Collectors.toList());
+                            
+                            // 查询消息对应的workflowRunId
+                            Map<String, Object> workflowRunIds = messagesService.getWorkflowRunIdsByMessageIds(messageIds);
+                            
+                            // 为每条消息添加work_flow_run_id字段
+                            for (Map<String, Object> message : filteredMessages) {
+                                String messageId = message.get("id").toString();
+                                if (workflowRunIds.containsKey(messageId)) {
+                                    message.put("work_flow_run_id", workflowRunIds.get(messageId));
+                                } else {
+                                    message.put("work_flow_run_id", null);
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        // 如果获取workflowRunId失败，记录日志但继续处理
+                        log.error("获取workflowRunId失败，继续返回原始消息", e);
+                        // 为每条消息添加空的work_flow_run_id字段
+                        for (Map<String, Object> message : filteredMessages) {
+                            message.put("work_flow_run_id", null);
+                        }
+                    }
                 }
             }
 

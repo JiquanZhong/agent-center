@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.diit.ds.mapper.MessagesMapper">
+
+    <resultMap id="BaseResultMap" type="com.diit.ds.domain.entity.dify.Messages">
+            <id property="id" column="id" />
+            <result property="appId" column="app_id" />
+            <result property="modelProvider" column="model_provider" />
+            <result property="modelId" column="model_id" />
+            <result property="overrideModelConfigs" column="override_model_configs" />
+            <result property="conversationId" column="conversation_id" />
+            <result property="inputs" column="inputs" />
+            <result property="query" column="query" />
+            <result property="message" column="message" />
+            <result property="messageTokens" column="message_tokens" />
+            <result property="messageUnitPrice" column="message_unit_price" />
+            <result property="answer" column="answer" />
+            <result property="answerTokens" column="answer_tokens" />
+            <result property="answerUnitPrice" column="answer_unit_price" />
+            <result property="providerResponseLatency" column="provider_response_latency" />
+            <result property="totalPrice" column="total_price" />
+            <result property="currency" column="currency" />
+            <result property="fromSource" column="from_source" />
+            <result property="fromEndUserId" column="from_end_user_id" />
+            <result property="fromAccountId" column="from_account_id" />
+            <result property="createdAt" column="created_at" />
+            <result property="updatedAt" column="updated_at" />
+            <result property="agentBased" column="agent_based" />
+            <result property="messagePriceUnit" column="message_price_unit" />
+            <result property="answerPriceUnit" column="answer_price_unit" />
+            <result property="workflowRunId" column="workflow_run_id" />
+            <result property="status" column="status" />
+            <result property="error" column="error" />
+            <result property="messageMetadata" column="message_metadata" />
+            <result property="invokeFrom" column="invoke_from" />
+            <result property="parentMessageId" column="parent_message_id" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,app_id,model_provider,model_id,override_model_configs,conversation_id,
+        inputs,query,message,message_tokens,message_unit_price,
+        answer,answer_tokens,answer_unit_price,provider_response_latency,total_price,
+        currency,from_source,from_end_user_id,from_account_id,created_at,
+        updated_at,agent_based,message_price_unit,answer_price_unit,workflow_run_id,
+        status,error,message_metadata,invoke_from,parent_message_id
+    </sql>
+</mapper>
