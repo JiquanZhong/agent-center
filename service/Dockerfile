@@ -8,10 +8,7 @@ WORKDIR /app
 RUN mkdir -p /app/config /app/log
 
 # 设置时区为亚洲/上海
-RUN apk add --no-cache tzdata && \
-    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
-    echo "Asia/Shanghai" > /etc/timezone && \
-    apk del tzdata
+ENV TZ=Asia/Shanghai
 
 # 复制已经构建好的JAR文件
 # 注意：请确保在构建Docker镜像前，JAR文件已经存在于target目录
