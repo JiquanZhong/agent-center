@@ -19,25 +19,25 @@ public class RAGFlowKnowledgeReq {
     private List<String> documentIds;
 
     @JsonProperty("page")
-    private Integer page ;
+    private Integer page = 1;
 
     @JsonProperty("page_size")
-    private Integer pageSize;
+    private Integer pageSize = 10;
 
     @JsonProperty("similarity_threshold")
     private Double similarityThreshold;
 
     @JsonProperty("vector_similarity_weight")
-    private Double vectorSimilarityWeight = 0.1;
+    private Double vectorSimilarityWeight = 0.5;
 
     @JsonProperty("top_k")
     private Integer topK;
 
     @JsonProperty("rerank_id")
-    private Integer rerankId;
+    private String rerankId = "bge-reranker-large@Xinference";
 
     @JsonProperty("keyword")
-    private Boolean keyword;
+    private Boolean keyword = true;
 
     @JsonProperty("highlight")
     private Boolean highlight;

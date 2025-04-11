@@ -139,8 +139,9 @@ public class RAGFlow2DifyKnowledgeServiceImpl implements DifyKnowledgeService {
         }
 
         ragFlowReq.setPage(1);
-        ragFlowReq.setPageSize(5);
-        ragFlowReq.setVectorSimilarityWeight(1.0);
+        ragFlowReq.setPageSize(10);
+        ragFlowReq.setVectorSimilarityWeight(0.5);
+
 
         return ragFlowReq;
     }
