@@ -1,9 +1,0 @@
-# 日志配置
-logging:
-  config: classpath:logback-spring.xml
-  level:
-    org.mybatis: warn
-    org.mybatis.spring: warn
-    org.apache.ibatis: warn
-    org.apache.ibatis.logging.jdbc.BaseJdbcLogger: warn
-    com.diit.ds.mapper: debug

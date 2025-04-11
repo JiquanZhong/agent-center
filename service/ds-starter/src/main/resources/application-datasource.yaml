@@ -5,19 +5,19 @@ spring:
       strict: false # 严格匹配数据源，默认false. true未匹配到指定数据源时抛异常，false使用默认数据源
       datasource:
         primary:
-          url: jdbc:postgresql://192.9.100.11:5433/houtu
-          username: postgres
-          password: postgres
+          url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+          username: ${POSTGRES_USER}
+          password: ${POSTGRES_PASSWORD}
           driver-class-name: org.postgresql.Driver
         dify:
-          url: jdbc:postgresql://192.168.11.205:5432/dify
-          username: postgres
-          password: difyai123456
+          url: jdbc:postgresql://${DIFY_DB_HOST}:${DIFY_DB_PORT}/${DIFY_DB_NAME}
+          username: ${DIFY_DB_USER}
+          password: ${DIFY_DB_PASSWORD}
           driver-class-name: org.postgresql.Driver
         ragflow:
-          url: jdbc:mysql://192.9.100.11:5455/rag_flow
-          username: root
-          password: infini_rag_flow
+          url: jdbc:mysql://${RAGFLOW_DB_HOST}:${RAGFLOW_DB_PORT}/${RAGFLOW_DB_NAME}
+          username: ${RAGFLOW_DB_USER}
+          password: ${RAGFLOW_DB_PASSWORD}
           driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       minimum-idle: 5

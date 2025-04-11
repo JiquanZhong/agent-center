@@ -3,16 +3,16 @@ llm:
 
 dify:
   api:
-    base-url: http://192.168.11.205
-    chat-agent-token: Bearer app-Ug8kHQck7eFWEQ9I3WFcNk7J
-    app-id: 00dde580-5faa-4345-b351-af6531253aa0
+    base-url: ${DIFY_URL:http://192.168.11.205}
+    chat-agent-token: ${DIFY_CHAT_AGENT_TOKEN:Bearer app-Ug8kHQck7eFWEQ9I3WFcNk7J}
+    app-id: ${DIFY_APP_ID:00dde580-5faa-4345-b351-af6531253aa0}
     chat-conversations-path: /console/api/apps/{appId}/chat-conversations
-  signature: sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U
+  signature: ${DIFY_SIGNATURE:sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U}
 
 rag-flow:
   api:
-    base-url: http://192.9.100.11:8000
-    api-key: Bearer ragflow-lkODFmN2Y0MGFjYTExZjBiYjE2MDI0Mm
+    base-url: ${RAGFLOW_URL:http://192.9.100.11:8000}
+    api-key: ${RAGFLOW_API_KEY:Bearer ragflow-lkODFmN2Y0MGFjYTExZjBiYjE2MDI0Mm}
 
 h3c:
   auth:
