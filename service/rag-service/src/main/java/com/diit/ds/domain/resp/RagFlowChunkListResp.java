@@ -1,11 +1,19 @@
 package com.diit.ds.domain.resp;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -26,12 +34,34 @@ public class RagFlowChunkListResp {
     /**
      * 错误信息
      */
+    @JsonProperty("message")
     private String message;
     
     /**
      * 切片数据
+     * 使用自定义反序列化器处理data字段为布尔值的情况
      */
+    @JsonProperty("data")
+    @JsonDeserialize(using = ChunkDataDeserializer.class)
     private ChunkData data;
+    
+    /**
+     * 自定义反序列化器，处理data字段为布尔值的情况
+     */
+    public static class ChunkDataDeserializer extends JsonDeserializer<ChunkData> {
+        @Override
+        public ChunkData deserialize(JsonParser p, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+            JsonNode node = p.getCodec().readTree(p);
+            
+            // 如果节点是布尔值，返回null
+            if (node.isBoolean()) {
+                return null;
+            }
+            
+            // 否则正常解析对象
+            return p.getCodec().treeToValue(node, ChunkData.class);
+        }
+    }
     
     @Data
     @Builder
@@ -42,16 +72,19 @@ public class RagFlowChunkListResp {
         /**
          * 切片列表
          */
+        @JsonProperty("chunks")
         private List<ChunkInfo> chunks;
         
         /**
          * 文档信息
          */
+        @JsonProperty("doc")
         private DocInfo doc;
         
         /**
          * 总数
          */
+        @JsonProperty("total")
         private Integer total;
     }
     
@@ -64,13 +97,20 @@ public class RagFlowChunkListResp {
         /**
          * 可用状态
          */
-        @JsonProperty("available_int")
-        private Integer availableInt;
+        @JsonProperty("available")
+        private Boolean available;
         
         /**
          * 切片内容
          */
+        @JsonProperty("content")
         private String content;
+
+        /**
+         * dataset ID
+         */
+        @JsonProperty("dataset_id")
+        private String datasetId;
         
         /**
          * 文档名称关键词
@@ -105,6 +145,12 @@ public class RagFlowChunkListResp {
          * 位置信息，格式为[[页码, x1, y1, x2, y2], [...], ...]，或者空数组
          */
         private List<List<Integer>> positions;
+        
+        /**
+         * 问题列表
+         */
+        @JsonProperty("questions")
+        private List<String> questions;
     }
     
     @Data
@@ -163,6 +209,12 @@ public class RagFlowChunkListResp {
          * 文件名称
          */
         private String name;
+        
+        /**
+         * 元数据字段
+         */
+        @JsonProperty("meta_fields")
+        private Map<String, Object> metaFields;
         
         /**
          * 解析配置

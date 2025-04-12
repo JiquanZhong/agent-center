@@ -7,7 +7,7 @@ server:
 db:
   ip: ${DB_HOST}
   port: 5432
-  sid: ${DB_NAME}
+  sid: ${POSTGRES_OPERATION_DB}
   username: ${DB_USER}
   password: ${DB_PASSWORD}
 

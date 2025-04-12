@@ -11,7 +11,6 @@ services:
     ports:
       - "${BACKEND_PORT}:9091"
     volumes:
-#      - ./config/java:/app/config
       - ./log:/app/log
       - ./preview:/app/preview
     environment:
@@ -23,6 +22,22 @@ services:
       - DIFY_SIGNATURE=${DIFY_SIGNATURE}
       - RAGFLOW_URL=${RAGFLOW_URL}
       - RAGFLOW_API_KEY=${RAGFLOW_API_KEY}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_OPERATION_DB=${POSTGRES_OPERATION_DB}
+      - POSTGRES_HOUTU_DB=${POSTGRES_HOUTU_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - DIFY_DB_HOST=${DIFY_DB_HOST}
+      - DIFY_DB_PORT=${DIFY_DB_PORT}
+      - DIFY_DB_NAME=${DIFY_DB_NAME}
+      - DIFY_DB_USER=${DIFY_DB_USER}
+      - DIFY_DB_PASSWORD=${DIFY_DB_PASSWORD}
+      - RAGFLOW_DB_HOST=${RAGFLOW_DB_HOST}
+      - RAGFLOW_DB_PORT=${RAGFLOW_DB_PORT}
+      - RAGFLOW_DB_NAME=${RAGFLOW_DB_NAME}
+      - RAGFLOW_DB_USER=${RAGFLOW_DB_USER}
+      - RAGFLOW_DB_PASSWORD=${RAGFLOW_DB_PASSWORD}
     restart: unless-stopped
     networks:
       - microservice-network
@@ -36,16 +51,6 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_HOST=${POSTGRES_HOST}
       - POSTGRES_PORT=${POSTGRES_PORT}
-      - DIFY_DB_HOST=${DIFY_DB_HOST}
-      - DIFY_DB_PORT=${DIFY_DB_PORT}
-      - DIFY_DB_NAME=${DIFY_DB_NAME}
-      - DIFY_DB_USER=${DIFY_DB_USER}
-      - DIFY_DB_PASSWORD=${DIFY_DB_PASSWORD}
-      - RAGFLOW_DB_HOST=${RAGFLOW_DB_HOST}
-      - RAGFLOW_DB_PORT=${RAGFLOW_DB_PORT}
-      - RAGFLOW_DB_NAME=${RAGFLOW_DB_NAME}
-      - RAGFLOW_DB_USER=${RAGFLOW_DB_USER}
-      - RAGFLOW_DB_PASSWORD=${RAGFLOW_DB_PASSWORD}
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
@@ -61,9 +66,9 @@ services:
     # image: operation-docker-backend:latest
     container_name: diit-operation-backend
     environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=${POSTGRES_DB}
+      - DB_HOST=${POSTGRES_HOST}
+      - DB_PORT=${POSTGRES_PORT}
+      - POSTGRES_OPERATION_DB=${POSTGRES_OPERATION_DB}
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - OPERATION_BACKEND_CONTEXT_PATH=${OPERATION_BACKEND_CONTEXT_PATH}
@@ -92,13 +97,9 @@ services:
     environment:
       - BACKEND_PORT=${BACKEND_PORT}
       - FRONTEND_PORT=${FRONTEND_PORT}
-      - DOCKER_HOST_IP=${DOCKER_HOST_IP:-192.168.11.205}
+      - DOCKER_HOST_IP=${DOCKER_HOST_IP}
     command: >
       /bin/sh -c "
-        sleep 2;  # 等待文件系统挂载完成
-        cp /tmp/update-config.sh /docker-entrypoint.d/update-config.sh;
-        chmod +x /docker-entrypoint.d/update-config.sh;
-        /bin/sh /docker-entrypoint.d/update-config.sh;
         nginx -g 'daemon off;'
       "
     depends_on:

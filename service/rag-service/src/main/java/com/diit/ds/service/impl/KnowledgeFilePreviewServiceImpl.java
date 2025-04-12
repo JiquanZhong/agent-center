@@ -216,12 +216,12 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
             
             try {
                 // 如果文件已存在，直接获取URL（避免重复下载）
-                if (previewFile.exists()) {
-                    log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
-                    String previewUrl = previewMapping + safeFileName;
-                    docPreviewUrlMap.put(documentId, previewUrl);
-                    continue;
-                }
+//                if (previewFile.exists()) {
+//                    log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
+//                    String previewUrl = previewMapping + safeFileName;
+//                    docPreviewUrlMap.put(documentId, previewUrl);
+//                    continue;
+//                }
                 
                 // 下载文件并生成URL
                 try (FileOutputStream outputStream = new FileOutputStream(previewFile)) {
