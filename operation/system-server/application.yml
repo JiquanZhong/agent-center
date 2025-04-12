@@ -5,11 +5,11 @@ server:
     context-path: /${OPERATION_BACKEND_CONTEXT_PATH:-diit-system}
 
 db:
-  ip: ${DB_HOST}
-  port: 5432
+  ip: ${POSTGRES_HOST}
+  port: ${POSTGRES_PORT}
   sid: ${POSTGRES_OPERATION_DB}
-  username: ${DB_USER}
-  password: ${DB_PASSWORD}
+  username: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
 
 
 spring:
