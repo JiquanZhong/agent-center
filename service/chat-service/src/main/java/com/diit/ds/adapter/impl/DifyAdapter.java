@@ -2,6 +2,7 @@ package com.diit.ds.adapter.impl;
 
 import com.diit.ds.adapter.LLMAdapter;
 import com.diit.ds.config.DifyConfig;
+import com.diit.ds.context.UserContext;
 import com.diit.ds.service.MessagesService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -303,6 +304,9 @@ public class DifyAdapter implements LLMAdapter {
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         if (user != null && !user.isEmpty()) {
             builder.queryParam("user", user);
+        } else {
+            // 根据jwt获取userId，防止报错
+            builder.queryParam("user", UserContext.getUserId());
         }
         if (lastId != null && !lastId.isEmpty()) {
             builder.queryParam("last_id", lastId);
