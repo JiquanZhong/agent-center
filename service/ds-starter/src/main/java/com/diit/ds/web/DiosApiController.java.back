@@ -1,0 +1,36 @@
+package com.diit.ds.web;
+
+import com.diit.ds.domain.req.DiosRetrieveReq;
+import com.diit.ds.domain.resp.DiosRetrieveResp;
+import com.diit.ds.service.DiosAPIService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+
+/**
+ * 武汉dios使用的知识库相关接口
+ */
+@Slf4j
+@RestController
+@RequestMapping("/api/dios")
+@Tag(name = "DIOS知识库知识查询", description = "武汉dios使用的知识库相关接口")
+@RequiredArgsConstructor
+public class DiosApiController {
+    private final DiosAPIService diosAPIService;
+
+    /**
+     * 从知识库中检索相关内容
+     */
+    @PostMapping("/retrieval")
+    @Operation(summary = "知识库查询", description = "从知识库中检索相关内容")
+    public DiosRetrieveResp retrieveKnowledge(@RequestBody DiosRetrieveReq req) {
+        log.info("接收到知识库查询请求：{}", req);
+        return diosAPIService.retrieve(req);
+    }
+} 

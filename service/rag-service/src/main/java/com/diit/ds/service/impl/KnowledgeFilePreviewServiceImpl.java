@@ -13,6 +13,7 @@ import com.diit.ds.structmapper.WorkflowChunkSM;
 import com.diit.ds.structmapper.WorkflowDocAggSM;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -26,7 +27,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewService {
+public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewService, InitializingBean {
 
     private final KnowledgeFileService knowledgeFileService;
     private final DocumentService documentService;
@@ -39,6 +40,19 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
     
     @Value("${file.preview-mapping:/preview/}")
     private String previewMapping;
+
+    // DIOS文件预览URL配置
+    @Value("${diit.dios.api.url}")
+    private String diosUrl;
+
+    private String diosFilePreviewUrlPrefix;
+    private String diosFilePreviewUrlSuffix = "/file-preview";
+    
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        diosFilePreviewUrlPrefix = diosUrl + "/data-center/#/overview/resource/info-view/data/";
+        log.info("DIOS文件预览URL前缀初始化完成: {}", diosFilePreviewUrlPrefix);
+    }
 
     /**
      * 获取文件预览URL
@@ -123,6 +137,7 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         
         // 3. 使用MapStruct将实体转换为DTO
         List<WorkflowChunkDTO> chunkDTOs = new ArrayList<>();
+        Map<String, String> docPreviewUrlMap = null;
         if (!CollectionUtils.isEmpty(chunks)) {
             // 提取所有文档ID
             Set<String> documentIds = chunks.stream()
@@ -131,7 +146,7 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
                     .collect(Collectors.toSet());
             
             // 生成文档预览URL映射
-            Map<String, String> docPreviewUrlMap = generatePreviewUrls(documentIds);
+            docPreviewUrlMap = generatePreviewUrls(documentIds);
             
             // 转换并设置预览URL
             for (WorkflowChunk chunk : chunks) {
@@ -149,14 +164,6 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         // 4. 处理文档聚合数据
         List<WorkflowDocAggDTO> docAggDTOs = new ArrayList<>();
         if (!CollectionUtils.isEmpty(docAggs)) {
-            // 提取所有文档ID
-            Set<String> docIds = docAggs.stream()
-                    .map(WorkflowDocAgg::getDocId)
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toSet());
-            
-            // 生成文档预览URL映射
-            Map<String, String> docPreviewUrlMap = generatePreviewUrls(docIds);
             
             // 转换并设置预览URL
             for (WorkflowDocAgg docAgg : docAggs) {
@@ -198,7 +205,13 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
                 .list();
         
         if (CollectionUtils.isEmpty(documents)) {
-            log.warn("未找到指定的文档记录");
+            // 如果没找到，说明是DIOS的资源
+            // 直接返回前缀+文档ID+后缀的URL
+            for (String documentId : documentIds) {
+                String previewUrl = diosFilePreviewUrlPrefix + documentId + diosFilePreviewUrlSuffix;
+                docPreviewUrlMap.put(documentId, previewUrl);
+            }
+
             return docPreviewUrlMap;
         }
         

@@ -14,6 +14,11 @@ rag-flow:
     base-url: ${RAGFLOW_URL:http://192.9.100.11:8000}
     api-key: ${RAGFLOW_API_KEY:Bearer ragflow-lkODFmN2Y0MGFjYTExZjBiYjE2MDI0Mm}
 
+diit:
+  dios:
+    api:
+      url: ${DIOS_KDB_URL}
+
 h3c:
   auth:
     base-url: http://ip:port
