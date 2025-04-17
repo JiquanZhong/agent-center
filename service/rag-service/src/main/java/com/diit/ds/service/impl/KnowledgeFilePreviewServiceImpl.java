@@ -17,10 +17,12 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.DigestUtils;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,6 +49,9 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
 
     private String diosFilePreviewUrlPrefix;
     private String diosFilePreviewUrlSuffix = "/file-preview";
+    
+    // 文件名最大长度限制，设置为较小的值以确保安全
+    private static final int MAX_FILENAME_LENGTH = 100;
     
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -77,7 +82,7 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         
         // 获取文件名称
         String fileName = document.getName();
-        String safeFileName = documentId + "_" + fileName;
+        String safeFileName = formatSafeFileName(documentId, fileName);
         
         // 创建预览目录
         createPreviewDirectory();
@@ -86,10 +91,10 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         File previewFile = new File(previewPath, safeFileName);
         
         // 如果文件已存在，直接返回URL（避免重复下载）
-        // if (previewFile.exists()) {
-        //     log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
-        //     return buildPreviewResponse(documentId, fileName, safeFileName);
-        // }
+        if (previewFile.exists()) {
+            log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
+            return buildPreviewResponse(documentId, fileName, safeFileName);
+        }
         
         try (FileOutputStream outputStream = new FileOutputStream(previewFile)) {
             // 调用KnowledgeFileService下载文件到预览目录
@@ -222,19 +227,19 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         for (Document document : documents) {
             String documentId = document.getId();
             String fileName = document.getName();
-            String safeFileName = documentId + "_" + fileName;
+            String safeFileName = formatSafeFileName(documentId, fileName);
             
             // 构建文件保存路径
             File previewFile = new File(previewPath, safeFileName);
             
             try {
                 // 如果文件已存在，直接获取URL（避免重复下载）
-//                if (previewFile.exists()) {
-//                    log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
-//                    String previewUrl = previewMapping + safeFileName;
-//                    docPreviewUrlMap.put(documentId, previewUrl);
-//                    continue;
-//                }
+                if (previewFile.exists()) {
+                    log.info("文件已存在，直接返回预览URL: {}", previewFile.getAbsolutePath());
+                    String previewUrl = previewMapping + safeFileName;
+                    docPreviewUrlMap.put(documentId, previewUrl);
+                    continue;
+                }
                 
                 // 下载文件并生成URL
                 try (FileOutputStream outputStream = new FileOutputStream(previewFile)) {
@@ -293,6 +298,38 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
                 log.warn("创建预览目录失败: {}", directory.getAbsolutePath());
             }
         }
+    }
+    
+    /**
+     * 格式化安全的文件名
+     * 始终使用MD5哈希作为文件名基础，避免特殊字符和长度问题
+     * 
+     * @param documentId 文档ID
+     * @param originalFileName 原始文件名
+     * @return 格式化后的安全文件名
+     */
+    private String formatSafeFileName(String documentId, String originalFileName) {
+        if (originalFileName == null || originalFileName.isEmpty()) {
+            return documentId + "_unknown";
+        }
+        
+        // 获取文件扩展名
+        String extension = "";
+        int lastDotIndex = originalFileName.lastIndexOf('.');
+        if (lastDotIndex > 0) {
+            extension = originalFileName.substring(lastDotIndex).toLowerCase();
+        }
+        
+        // 始终使用MD5哈希生成安全的文件名
+        String md5FileName = DigestUtils.md5DigestAsHex(originalFileName.getBytes(StandardCharsets.UTF_8));
+        
+        // 组合安全的文件名：documentId_md5hash.extension
+        String safeFileName = documentId + "_" + md5FileName + extension;
+        
+        // 记录文件名映射关系，便于排查问题
+        log.debug("文件名映射: {} -> {}", originalFileName, safeFileName);
+        
+        return safeFileName;
     }
     
     /**
