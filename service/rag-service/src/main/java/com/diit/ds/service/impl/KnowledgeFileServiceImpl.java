@@ -332,6 +332,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
                     runCode = "4";
                     break;
             }
+            //非以上条件，则不进行筛选
             if (runCode != null) {
                 queryWrapper.eq(Document::getRun, runCode);
             }

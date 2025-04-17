@@ -62,7 +62,7 @@ public class KnowledgeFileController {
             @Parameter(description = "关键词") @RequestParam(required = false) String keywords,
             @Parameter(description = "文档ID") @RequestParam(required = false) String id,
             @Parameter(description = "文档名称") @RequestParam(required = false) String name,
-            @Parameter(description = "文档状态") @RequestParam(required = false) String status) {
+            @Parameter(description = "文档状态") @RequestParam(required = false) String status ) {
         RAGFlowFileListReq req = RAGFlowFileListReq.builder()
                 .page(page)
                 .pageSize(pageSize)
