@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 设置默认的log名称，如果在yml中定义了logging.file.name，则使用yml中的定义 -->
+    <property name="DEFAULT_LOG_FILE_NAME" value="diit-system-web"/>
+
+    <!-- 导入Logback通用的日志配置 -->
+    <include resource="com/diit/common/rest/logging/logback/base.xml" />
+
+</configuration>

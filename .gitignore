@@ -9,3 +9,4 @@ volumes/
 volumes
 service/log
 preview
+operation/system-server/diit-system/logs

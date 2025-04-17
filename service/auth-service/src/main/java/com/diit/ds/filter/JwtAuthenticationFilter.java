@@ -97,7 +97,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (userInfo.containsKey("loginName")) {
                     UserContext.setLoginName(userInfo.get("loginName"));
                 }
-
+                if (userInfo.containsKey("userRoles")) {
+                    UserContext.setUserRoles(userInfo.get("userRoles"));
+                }
                 log.debug("已设置用户上下文: {}", UserContext.getAttributes());
             } else {
                 log.warn("无法解析JWT中的用户信息: {}", token);

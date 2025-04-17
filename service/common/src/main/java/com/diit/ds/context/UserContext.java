@@ -75,6 +75,24 @@ public class UserContext {
     }
 
     /**
+     * 设置角色权限名
+     *
+     * @param userRoles 角色权限名，以,分割
+     */
+    public void setUserRoles(String userRoles) {
+        CONTEXT.get().put("userRoles", userRoles);
+    }
+
+    /**
+     * 获取角色权限名
+     *
+     * @return 角色权限名
+     */
+    public String getUserRoles() {
+        return (String) CONTEXT.get().get("userRoles");
+    }
+
+    /**
      * 设置自定义属性
      * 
      * @param key 属性键
