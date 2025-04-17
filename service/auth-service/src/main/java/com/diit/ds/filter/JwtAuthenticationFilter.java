@@ -1,6 +1,6 @@
 package com.diit.ds.filter;
 
-import com.diit.ds.annotation.NotNeedAuth;
+import com.diit.ds.annotation.*;
 import com.diit.ds.context.UserContext;
 import com.diit.ds.util.JwtUtil;
 import jakarta.servlet.FilterChain;
@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -105,6 +106,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.warn("无法解析JWT中的用户信息: {}", token);
             }
 
+            // 检查是否需要管理员权限
+            if (isNeedAdminRoleEndpoint(request)) {
+                String userRoles = UserContext.getUserRoles();
+                if (userRoles == null) {
+                    log.warn("需要管理员权限: {}", request.getRequestURI());
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.getWriter().write("需要管理员权限");
+                    return;
+                }
+                //userRoles按逗号分隔，分离为一个数组
+                String[] roles = userRoles.split(",");
+                if (!Arrays.asList(roles).contains("管理员")){
+                    log.warn("需要管理员权限: {}", request.getRequestURI());
+                    response.setStatus(HttpStatus.FORBIDDEN.value());
+                    response.getWriter().write("需要管理员权限");
+                    return;
+                }
+            }
+
             // 继续请求处理
             filterChain.doFilter(request, response);
         } catch (Exception e) {
@@ -171,5 +191,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         return false;
+    }
+
+    /**
+     * 判断是否需要管理员权限的接口
+     *
+     * @param request 请求
+     * @return 是否需要管理员权限的接口
+     */
+    private boolean isNeedAdminRoleEndpoint(HttpServletRequest request) {
+        try {
+            HandlerExecutionChain handlerExecutionChain = handlerMapping.getHandler(request);
+            if (handlerExecutionChain == null) {
+                return false;
+            }
+
+            Object handler = handlerExecutionChain.getHandler();
+            if (!(handler instanceof HandlerMethod)) {
+                return false;
+            }
+
+            HandlerMethod handlerMethod = (HandlerMethod) handler;
+            Method method = handlerMethod.getMethod();
+
+            // 检查方法上是否有NeedAdminRole注解
+            if (method.isAnnotationPresent(NeedAdminRole.class)) {
+                return true;
+            }
+
+            // 检查类上是否有NeedAdminRole注解
+            return handlerMethod.getBeanType().isAnnotationPresent(NeedAdminRole.class);
+        } catch (Exception e) {
+            log.error("检查管理员权限要求时发生异常: {}", e.getMessage(), e);
+            return false;
+        }
     }
 } 

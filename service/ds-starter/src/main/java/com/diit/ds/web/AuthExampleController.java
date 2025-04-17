@@ -1,6 +1,7 @@
 package com.diit.ds.web;
 
 import com.diit.ds.annotation.NotNeedAuth;
+import com.diit.ds.annotation.NeedAdminRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -35,5 +36,13 @@ public class AuthExampleController {
     @GetMapping("/protected")
     public String protectedEndpoint() {
         return "这是一个受保护的接口，需要有效的JWT认证才能访问";
+    }
+
+    @Deprecated
+    @NeedAdminRole
+    @Operation(summary = "权限接口", description = "需要管理员权限")
+    @GetMapping("/sensitive-data")
+    public String getSensitiveData() {
+        return "这是需要管理员权限的数据";
     }
 } 
