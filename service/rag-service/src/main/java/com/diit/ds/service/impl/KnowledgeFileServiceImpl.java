@@ -314,28 +314,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
         }
         
         if (req.getStatus() != null && !req.getStatus().isEmpty()) {
-            String runCode = null;
-            switch (req.getStatus()) {
-                case "未解析":
-                    runCode = "0";
-                    break;
-                case "解析中":
-                    runCode = "1";
-                    break;
-                case "已入库":
-                    runCode = "3";
-                    break;
-                case "已取消":
-                    runCode = "2";
-                    break;
-                case "解析失败":
-                    runCode = "4";
-                    break;
-            }
-            //非以上条件，则不进行筛选
-            if (runCode != null) {
-                queryWrapper.eq(Document::getRun, runCode);
-            }
+            queryWrapper.eq(Document::getRun, req.getStatus());
         }
         
         if (req.getKeywords() != null && !req.getKeywords().isEmpty()) {
