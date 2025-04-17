@@ -61,7 +61,8 @@ public class KnowledgeFileController {
             @Parameter(description = "是否降序") @RequestParam(required = false) Boolean desc,
             @Parameter(description = "关键词") @RequestParam(required = false) String keywords,
             @Parameter(description = "文档ID") @RequestParam(required = false) String id,
-            @Parameter(description = "文档名称") @RequestParam(required = false) String name) {
+            @Parameter(description = "文档名称") @RequestParam(required = false) String name,
+            @Parameter(description = "文档状态") @RequestParam(required = false) String status) {
         RAGFlowFileListReq req = RAGFlowFileListReq.builder()
                 .page(page)
                 .pageSize(pageSize)
@@ -70,6 +71,7 @@ public class KnowledgeFileController {
                 .keywords(keywords)
                 .id(id)
                 .name(name)
+                .status(status)
                 .build();
         RAGFlowFileListResp result = knowledgeFileService.listFiles(treeNodeId, req);
         return ResponseEntity.ok(result);

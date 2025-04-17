@@ -14,6 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
@@ -310,6 +311,30 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
         
         if (req.getName() != null && !req.getName().isEmpty()) {
             queryWrapper.like(Document::getName, req.getName());
+        }
+        
+        if (req.getStatus() != null && !req.getStatus().isEmpty()) {
+            String runCode = null;
+            switch (req.getStatus()) {
+                case "未解析":
+                    runCode = "0";
+                    break;
+                case "解析中":
+                    runCode = "1";
+                    break;
+                case "已入库":
+                    runCode = "3";
+                    break;
+                case "已取消":
+                    runCode = "2";
+                    break;
+                case "解析失败":
+                    runCode = "4";
+                    break;
+            }
+            if (runCode != null) {
+                queryWrapper.eq(Document::getRun, runCode);
+            }
         }
         
         if (req.getKeywords() != null && !req.getKeywords().isEmpty()) {
