@@ -24,6 +24,7 @@ import org.springframework.util.ObjectUtils;
 
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -115,6 +116,34 @@ public class LoginServiceImpl implements LoginService {
         } catch (Exception e) {
             log.error("密码修改失败", e);
             return ResponseData.error("密码修改失败");
+        }
+    }
+
+    @Override
+    public ResponseData UserRegister(User user) {
+        try {
+            // 检查用户名是否已存在
+            User existingUser = userMapper.selectOne(new QueryWrapper<User>()
+                    .eq("login_name", user.getLoginName()));
+            if (existingUser != null) {
+                return ResponseData.error("用户名已存在");
+            }
+            // 生成UUID作为用户ID，并移除'-'字符
+            String userId = UUID.randomUUID().toString().replace("-", "");
+            user.setId(userId);
+            // 设置创建时间为当前时间
+            user.setCreateTime(new Date());
+            // 加密密码
+            String encryptedPassword = encryptService.encrypt(user.getPassword());
+            user.setPassword(encryptedPassword);
+            // 设置默认状态为启用
+            user.setStatus("1");
+            // 保存用户信息
+            userMapper.insert(user);
+            return ResponseData.ok("用户注册成功");
+        } catch (Exception e) {
+            log.error("用户注册失败", e);
+            return ResponseData.error("用户注册失败：" + e.getMessage());
         }
     }
 }
