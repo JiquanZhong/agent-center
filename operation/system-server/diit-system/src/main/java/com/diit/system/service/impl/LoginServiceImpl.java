@@ -128,7 +128,7 @@ public class LoginServiceImpl implements LoginService {
     }
 
     @Override
-    public ResponseData UserRegister(User user) {
+    public ResponseData userRegister(User user) {
         try {
             // 检查用户名是否已存在
             User existingUser = userMapper.selectOne(new QueryWrapper<User>()

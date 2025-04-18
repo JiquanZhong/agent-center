@@ -39,8 +39,8 @@ public class LoginController {
      * @param user 用户信息
      * @return 响应数据
      */
-    @PostMapping("/UserRegister")
-    public ResponseData UserRegister(@RequestBody User user) {
-        return loginService.UserRegister(user);
+    @PostMapping("/userRegister")
+    public ResponseData userRegister(@RequestBody User user) {
+        return loginService.userRegister(user);
     }
 }

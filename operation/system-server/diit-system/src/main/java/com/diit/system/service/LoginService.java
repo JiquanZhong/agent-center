@@ -10,5 +10,5 @@ public interface LoginService {
     
     ResponseData changePassword(String userId, String oldPassword, String newPassword);
     
-    ResponseData UserRegister(User user);
+    ResponseData userRegister(User user);
 }
