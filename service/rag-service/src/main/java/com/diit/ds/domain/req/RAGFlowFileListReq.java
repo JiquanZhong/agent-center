@@ -52,12 +52,12 @@ public class RAGFlowFileListReq {
     
     /**
      * 文档状态
-     * 可选值如下：
-     * 未解析 - 文件已上传但未开始解析
-     * 解析中 - 文件正在解析中
-     * 已入库 - 文件已解析完成并入库
-     * 已取消 - 文件解析被取消
-     * 解析失败 - 文件解析失败
      */
     private String status;
+
+    /**
+     * 文档类型
+     */
+    private String fileType;
+
 } 

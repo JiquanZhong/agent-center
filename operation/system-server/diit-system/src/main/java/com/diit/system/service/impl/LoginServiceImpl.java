@@ -11,6 +11,8 @@ import com.diit.system.basic.entity.UserRole;
 import com.diit.system.basic.mapper.RoleMapper;
 import com.diit.system.basic.mapper.UserMapper;
 import com.diit.system.basic.mapper.UserRoleMapper;
+import com.diit.system.basic.service.UserRoleService;
+import com.diit.system.basic.service.UserService;
 import com.diit.system.bean.LoginUser;
 import com.diit.system.bean.UserVO;
 import com.diit.system.service.LoginService;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
+import com.diit.system.enums.*;
 
 import java.util.Date;
 import java.util.List;
@@ -37,6 +40,10 @@ public class LoginServiceImpl implements LoginService {
     private UserRoleMapper userRoleMapper;
     @Autowired
     private RoleMapper roleMapper;
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private UserRoleService userRoleService;
 
     @Autowired
     private EncryptService encryptService;
@@ -111,6 +118,7 @@ public class LoginServiceImpl implements LoginService {
         try {
             String encryptedNewPassword = encryptService.encrypt(newPassword);
             user.setPassword(encryptedNewPassword);
+            user.setPwdModifyTime(new Date());
             userMapper.updateById(user);
             return ResponseData.ok("密码修改成功");
         } catch (Exception e) {
@@ -133,13 +141,27 @@ public class LoginServiceImpl implements LoginService {
             user.setId(userId);
             // 设置创建时间为当前时间
             user.setCreateTime(new Date());
-            // 加密密码
-            String encryptedPassword = encryptService.encrypt(user.getPassword());
-            user.setPassword(encryptedPassword);
             // 设置默认状态为启用
             user.setStatus("1");
-            // 保存用户信息
-            userMapper.insert(user);
+            // 保存用户信息,判断是否有自定义密码
+            if (ObjectUtils.isEmpty(user.getPassword())){
+                userService.insert_new(user);
+            }else{
+                user.setPassword(encryptService.encrypt(user.getPassword()));
+                user.setPwdModifyTime(new Date());
+                try {
+                    user.setEmailPassword(userService.getEncryptMailPassword(user.getEmailPassword()));
+                } catch (Exception var4) {
+                    Exception e = var4;
+                    this.log.error("邮箱密码加密失败", e);
+                    throw new RuntimeException("邮箱密码加密失败");
+                }
+                user.setDel(0);
+                userMapper.insert(user);
+            }
+            // 给用户分配默认角色
+            Role role = roleMapper.selectOne(new QueryWrapper<Role>().eq("name", RoleEnum.NORMAL.getName()));
+            userRoleService.addUserToRole(user.getId(), role.getId());
             return ResponseData.ok("用户注册成功");
         } catch (Exception e) {
             log.error("用户注册失败", e);

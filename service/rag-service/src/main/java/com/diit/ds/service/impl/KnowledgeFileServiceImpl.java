@@ -324,6 +324,10 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
                        .like(Document::getLocation, req.getKeywords());
             });
         }
+
+        if (req.getFileType() != null && !req.getFileType().isEmpty()) {
+            queryWrapper.eq(Document::getType, req.getFileType());
+        }
         
         // 设置排序
         if (req.getOrderby() != null && !req.getOrderby().isEmpty()) {
