@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.diit.common.crypto.service.EncryptService;
+import com.diit.common.rest.response.ResponseData;
 import com.diit.system.basic.entity.Role;
 import com.diit.system.basic.entity.User;
 import com.diit.system.basic.entity.UserRole;
@@ -85,5 +86,35 @@ public class LoginServiceImpl implements LoginService {
         }catch (Exception e) {
         }
         throw new RuntimeException("用户或密码不正确");
+    }
+
+    @Override
+    public ResponseData changePassword(String userId, String oldPassword, String newPassword) {
+        // 根据userId查询用户
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            return ResponseData.error("用户不存在");
+        }
+
+        // 验证旧密码
+        try {
+            if (!encryptService.match(oldPassword, user.getPassword())) {
+                return ResponseData.error("旧密码不正确");
+            }
+        } catch (Exception e) {
+            log.error("密码验证失败", e);
+            return ResponseData.error("密码验证失败");
+        }
+
+        // 加密新密码
+        try {
+            String encryptedNewPassword = encryptService.encrypt(newPassword);
+            user.setPassword(encryptedNewPassword);
+            userMapper.updateById(user);
+            return ResponseData.ok("密码修改成功");
+        } catch (Exception e) {
+            log.error("密码修改失败", e);
+            return ResponseData.error("密码修改失败");
+        }
     }
 }
