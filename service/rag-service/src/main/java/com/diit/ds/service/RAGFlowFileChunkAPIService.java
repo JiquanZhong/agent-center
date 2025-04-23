@@ -8,7 +8,7 @@ import com.diit.ds.domain.resp.RagFlowChunkUpdateResp;
 /**
  * RAGFlow文件切片API服务接口
  */
-public interface RagFlowFileChunkAPIService {
+public interface RAGFlowFileChunkAPIService {
     
     /**
      * 查看文档的切片列表

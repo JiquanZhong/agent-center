@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 
 @Tag(name = "知识库文件管理", description = "知识库文件管理相关接口")
@@ -121,12 +122,13 @@ public class KnowledgeFileController {
         return ResponseEntity.ok(result);
     }
 
-//     @Operation(summary = "更新文档切片内容", description = "更新指定文档切片的内容")
-//     @PutMapping("/chunks/{chunkId}")
-//     public ResponseEntity<RagFlowChunkUpdateResp> updateChunk(
-//             @Parameter(description = "切片ID") @PathVariable String chunkId,
-//             @Parameter(description = "更新请求") @RequestBody RagFlowChunkUpdateReq req) {
-//         RagFlowChunkUpdateResp result = knowledgeFileService.updateChunk(chunkId, req);
-//         return ResponseEntity.ok(result);
-//     }
+    @Operation(summary = "更新文档切片内容", description = "更新指定文档切片的内容")
+    @PutMapping("/chunks/{documentId}/{chunkId}")
+    public ResponseEntity<RagFlowChunkUpdateResp> updateChunk(
+            @Parameter(description = "文档ID") @PathVariable String documentId,
+            @Parameter(description = "切片ID") @PathVariable String chunkId,
+            @Parameter(description = "更新请求") @RequestBody RagFlowChunkUpdateReq req) {
+        RagFlowChunkUpdateResp result = knowledgeFileService.updateChunk(documentId, chunkId, req);
+        return ResponseEntity.ok(result);
+    }
 }

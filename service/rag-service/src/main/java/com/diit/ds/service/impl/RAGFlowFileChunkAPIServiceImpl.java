@@ -5,7 +5,7 @@ import com.diit.ds.domain.req.RagFlowChunkListReq;
 import com.diit.ds.domain.req.RagFlowChunkUpdateReq;
 import com.diit.ds.domain.resp.RagFlowChunkListResp;
 import com.diit.ds.domain.resp.RagFlowChunkUpdateResp;
-import com.diit.ds.service.RagFlowFileChunkAPIService;
+import com.diit.ds.service.RAGFlowFileChunkAPIService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -22,7 +22,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class RagFlowFileChunkAPIServiceImpl implements RagFlowFileChunkAPIService {
+public class RAGFlowFileChunkAPIServiceImpl implements RAGFlowFileChunkAPIService {
     
     private static final String API_PREFIX = "/api/v1";
     private static final String DATASETS_ENDPOINT = "/datasets";

@@ -23,8 +23,22 @@ public class RagFlowChunkUpdateReq {
     private String content;
     
     /**
-     * 重要关键词
+     * 关键词
      */
     @JsonProperty("important_keywords")
     private List<String> importantKeywords;
+
+    /**
+     * 问题标签
+     */
+    @JsonProperty("questions")
+    private List<String> questions;
+
+    /**
+     * 是否开启
+     */
+    @JsonProperty("available")
+    private Boolean available;
+
+
 } 

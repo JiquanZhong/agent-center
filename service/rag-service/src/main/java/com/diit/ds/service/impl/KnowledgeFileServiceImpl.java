@@ -1,6 +1,5 @@
 package com.diit.ds.service.impl;
 
-import com.baomidou.dynamic.datasource.annotation.DS;
 import com.diit.ds.context.UserContext;
 import com.diit.ds.domain.entity.Document;
 import com.diit.ds.domain.entity.KnowledgeTreeNode;
@@ -14,7 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
@@ -40,7 +38,7 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
     private final KnowledgeTreeNodeService knowledgeTreeNodeService;
     private final DocumentService documentService;
     private final RAGFlowFileAPIService ragFlowFileAPIService;
-    private final RagFlowFileChunkAPIService ragFlowFileChunkAPIService;
+    private final RAGFlowFileChunkAPIService ragFlowFileChunkAPIService;
     private final ExecutorService executorService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -630,13 +628,17 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
     /**
      * 更新文档分块内容
      *
+     * @param documentId 文档ID
      * @param chunkId 分块ID
      * @param req 分块更新请求参数
      * @return 分块更新响应
      */
     @Override
-    public RagFlowChunkUpdateResp updateChunk(String chunkId, RagFlowChunkUpdateReq req) {
-        return null;
+    public RagFlowChunkUpdateResp updateChunk(String documentId, String chunkId,RagFlowChunkUpdateReq req) {
+        // 获取数据集ID
+        String datasetId = documentService.getDatasetId(documentId);
+        // 调用RAGFlow API更新分块内容
+        return ragFlowFileChunkAPIService.updateChunk(datasetId, documentId, chunkId, req);
     }
 
     /**
