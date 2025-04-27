@@ -36,4 +36,9 @@ public class KnowledgeTreeNodeCreateReq {
      * 节点描述
      */
     private String description;
+
+    /**
+     * 节点类型
+     */
+    private String type;
 }

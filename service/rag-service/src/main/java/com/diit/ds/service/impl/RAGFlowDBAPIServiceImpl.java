@@ -79,6 +79,9 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
     @Override
     public RAGFlowDatasetCreateResp createDataset(RAGFlowDatasetCreateReq req) {
         try {
+            // 根据chunk_method类型配置不同的parser_config
+            configureParserConfigByChunkMethod(req);
+            
             // 构建请求URL
             String url = ragFlowConfig.getBaseUrl() + API_PREFIX + DATASETS_ENDPOINT;
             log.info("RAGFlow 创建数据集API请求URL: {}", url);
@@ -270,5 +273,200 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             errorResp.setMessage("调用RAGFlow 获取数据集列表API失败: " + e.getMessage());
             return errorResp;
         }
+    }
+    
+    /**
+     * 根据分块方法（chunk_method）配置解析器设置（parser_config）
+     * 
+     * @param req 创建数据集请求
+     */
+    private void configureParserConfigByChunkMethod(RAGFlowDatasetCreateReq req) {
+        String chunkMethod = req.getChunkMethod();
+        RAGFlowDatasetCreateReq.ParserConfig parserConfig = req.getParserConfig();
+        
+        if (parserConfig == null) {
+            parserConfig = new RAGFlowDatasetCreateReq.ParserConfig();
+            req.setParserConfig(parserConfig);
+        }
+        
+        // 确保Raptor配置存在
+        if (parserConfig.getRaptor() == null) {
+            RAGFlowDatasetCreateReq.ParserConfig.RaptorConfig raptorConfig = 
+                new RAGFlowDatasetCreateReq.ParserConfig.RaptorConfig();
+            raptorConfig.setUseRaptor(false);
+            parserConfig.setRaptor(raptorConfig);
+        }
+        
+        // 确保GraphRAG配置存在
+        if (parserConfig.getGraphrag() == null) {
+            RAGFlowDatasetCreateReq.ParserConfig.GraphRAGConfig graphRAGConfig = 
+                new RAGFlowDatasetCreateReq.ParserConfig.GraphRAGConfig();
+            graphRAGConfig.setUseGraphRAG(false);
+            parserConfig.setGraphrag(graphRAGConfig);
+        }
+        
+        // 根据不同分块方法配置不同的parser_config
+        switch (chunkMethod) {
+            case "naive":
+                // 通用类型
+                configureNaiveParserConfig(parserConfig);
+                break;
+            case "manual":
+                // 法律类型
+                configureSimpleParserConfig(parserConfig);
+                break;
+            case "paper":
+                // 论文类型
+                configureSimpleParserConfig(parserConfig);
+                break;
+            case "book":
+                // 书籍类型
+                configureSimpleParserConfig(parserConfig);
+                break;
+            case "qa":
+                // 问答对类型 - 仅保留raptor和graphrag配置
+                configureQAParserConfig(parserConfig);
+                break;
+            default:
+                // 默认使用通用配置
+                configureNaiveParserConfig(parserConfig);
+                break;
+        }
+        
+        log.info("根据chunk_method[{}]配置parser_config完成", chunkMethod);
+    }
+    
+    /**
+     * 配置通用类型的解析器设置
+     */
+    private void configureNaiveParserConfig(RAGFlowDatasetCreateReq.ParserConfig parserConfig) {
+        // 通用类型需要保留所有字段
+        parserConfig.setLayoutRecognize("DeepDOC");
+        parserConfig.setChunkTokenNum(512);
+        parserConfig.setDelimiter("\\n!?;。；！？");
+        parserConfig.setAutoKeywords(5);
+        parserConfig.setAutoQuestions(2);
+        parserConfig.setHtml4excel(false);
+        parserConfig.setTaskPageSize(12);
+    }
+    
+    /**
+     * 配置简单类型的解析器设置（适用于manual、paper、book、laws等）
+     */
+    private void configureSimpleParserConfig(RAGFlowDatasetCreateReq.ParserConfig parserConfig) {
+        // 这些类型只需要部分字段
+        parserConfig.setLayoutRecognize("DeepDOC");
+        parserConfig.setAutoKeywords(5);
+        parserConfig.setAutoQuestions(2);
+        
+        // 清除不需要的字段
+        parserConfig.setChunkTokenNum(null);
+        parserConfig.setDelimiter(null);
+        parserConfig.setHtml4excel(null);
+        parserConfig.setTaskPageSize(null);
+    }
+    
+    /**
+     * 配置问答对类型的解析器设置
+     */
+    private void configureQAParserConfig(RAGFlowDatasetCreateReq.ParserConfig parserConfig) {
+        // 问答对类型需要清除大部分字段，只保留必要的配置
+        parserConfig.setLayoutRecognize(null);
+        parserConfig.setAutoKeywords(null);
+        parserConfig.setAutoQuestions(null);
+        parserConfig.setChunkTokenNum(null);
+        parserConfig.setDelimiter(null);
+        parserConfig.setHtml4excel(null);
+        parserConfig.setTaskPageSize(null);
+    }
+
+    /**
+     * 创建通用类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    public RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission) {
+        RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
+        req.setName(name);
+        req.setDescription(description);
+        req.setPermission(permission != null ? permission : "team");
+        req.setChunkMethod("naive");
+        
+        return createDataset(req);
+    }
+    
+    /**
+     * 创建法律类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    public RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission) {
+        RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
+        req.setName(name);
+        req.setDescription(description);
+        req.setPermission(permission != null ? permission : "team");
+        req.setChunkMethod("manual");
+        
+        return createDataset(req);
+    }
+    
+    /**
+     * 创建论文类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    public RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission) {
+        RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
+        req.setName(name);
+        req.setDescription(description);
+        req.setPermission(permission != null ? permission : "team");
+        req.setChunkMethod("paper");
+        
+        return createDataset(req);
+    }
+    
+    /**
+     * 创建书籍类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    public RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission) {
+        RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
+        req.setName(name);
+        req.setDescription(description);
+        req.setPermission(permission != null ? permission : "team");
+        req.setChunkMethod("book");
+        
+        return createDataset(req);
+    }
+    
+    /**
+     * 创建问答对类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    public RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission) {
+        RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
+        req.setName(name);
+        req.setDescription(description);
+        req.setPermission(permission != null ? permission : "team");
+        req.setChunkMethod("qa");
+        
+        return createDataset(req);
     }
 }

@@ -149,6 +149,12 @@ public class RAGFlowDatasetCreateReq {
          */
         @JsonProperty("raptor")
         private RaptorConfig raptor;
+        
+        /**
+         * GraphRAG特定设置
+         */
+        @JsonProperty("graphrag")
+        private GraphRAGConfig graphrag;
 
         /**
          * 实体类型，仅当chunk_method为"knowledge_graph"时使用
@@ -166,6 +172,18 @@ public class RAGFlowDatasetCreateReq {
              */
             @JsonProperty("use_raptor")
             private Boolean useRaptor = false;
+        }
+        
+        /**
+         * GraphRAG配置类
+         */
+        @Data
+        public static class GraphRAGConfig {
+            /**
+             * 是否使用GraphRAG，默认为false
+             */
+            @JsonProperty("use_graphrag")
+            private Boolean useGraphRAG = false;
         }
     }
 } 

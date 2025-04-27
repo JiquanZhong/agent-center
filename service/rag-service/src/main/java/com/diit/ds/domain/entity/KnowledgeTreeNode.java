@@ -85,4 +85,10 @@ public class KnowledgeTreeNode {
      */
     @TableField("document_num")
     private Integer documentNum;
+
+    /**
+     * 节点类型
+     */
+    @TableField("type")
+    private String type;
 }

@@ -48,13 +48,70 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
     @Transactional(rollbackFor = Exception.class)
     public KnowledgeTreeNode createNode(KnowledgeTreeNodeCreateReq createReq) {
         KnowledgeTreeNode knowledgeTreeNode = KnowledgeTreeNodeSM.INSTANCE.createDTO2Entity(createReq);
-        // 创建RAGFlow数据集请求
-        RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
-        req.setName(knowledgeTreeNode.getName());
-        req.setDescription(knowledgeTreeNode.getDescription());
         
-        // 调用RAGFlow API创建数据集
-        RAGFlowDatasetCreateResp resp = ragFlowDBAPIService.createDataset(req);
+        // 获取节点类型
+        String nodeType = createReq.getType();
+        log.info("创建知识树节点，节点名称: {}, 节点类型: {}", knowledgeTreeNode.getName(), nodeType);
+        
+        // 创建RAGFlow数据集
+        RAGFlowDatasetCreateResp resp;
+        
+        // 根据节点类型创建不同类型的数据集
+        if (nodeType != null) {
+            switch (nodeType.toLowerCase()) {
+                case "general":
+                case "通用":
+                    resp = ragFlowDBAPIService.createGeneralDataset(
+                            knowledgeTreeNode.getName(),
+                            knowledgeTreeNode.getDescription(),
+                            "team");
+                    break;
+                case "laws":
+                case "法律":
+                    resp = ragFlowDBAPIService.createLawsDataset(
+                            knowledgeTreeNode.getName(),
+                            knowledgeTreeNode.getDescription(),
+                            "team");
+                    break;
+                case "paper":
+                case "论文":
+                    resp = ragFlowDBAPIService.createPaperDataset(
+                            knowledgeTreeNode.getName(),
+                            knowledgeTreeNode.getDescription(),
+                            "team");
+                    break;
+                case "book":
+                case "书籍":
+                    resp = ragFlowDBAPIService.createBookDataset(
+                            knowledgeTreeNode.getName(),
+                            knowledgeTreeNode.getDescription(),
+                            "team");
+                    break;
+                case "qa":
+                case "问答":
+                case "问答对":
+                    resp = ragFlowDBAPIService.createQADataset(
+                            knowledgeTreeNode.getName(),
+                            knowledgeTreeNode.getDescription(),
+                            "team");
+                    break;
+                default:
+                    // 默认创建通用类型数据集
+                    log.info("未知节点类型: {}，将创建通用类型数据集", nodeType);
+                    resp = ragFlowDBAPIService.createGeneralDataset(
+                            knowledgeTreeNode.getName(),
+                            knowledgeTreeNode.getDescription(),
+                            "team");
+                    break;
+            }
+        } else {
+            // 如果未指定类型，默认创建通用类型数据集
+            log.info("未指定节点类型，将创建通用类型数据集");
+            resp = ragFlowDBAPIService.createGeneralDataset(
+                    knowledgeTreeNode.getName(),
+                    knowledgeTreeNode.getDescription(),
+                    "team");
+        }
 
         // 检查API调用结果
         if (resp != null && resp.getCode() == 0 && resp.getData() != null) {
@@ -77,6 +134,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             knowledgeTreeNode.setKdbId(resp.getData().getId());
             knowledgeTreeNode.setRagflowName(resp.getData().getName());
             knowledgeTreeNode.setEmbeddingsModel(resp.getData().getEmbeddingModel());
+            knowledgeTreeNode.setType(nodeType); // 设置节点类型
 
             // 设置创建和更新时间
             Date now = new Date();
@@ -88,7 +146,8 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                 log.error("知识树节点创建失败，ID: {}, RAGFlow数据集ID: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId());
                 throw new RuntimeException("知识树节点创建失败");
             }
-            log.info("知识树节点创建成功，ID: {}, RAGFlow数据集ID: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId());
+            // log.info("知识树节点创建成功，ID: {}, RAGFlow数据集ID: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId());
+            log.info("知识树节点创建成功，ID: {}, RAGFlow数据集ID: {}, 类型: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId(), nodeType);
             return knowledgeTreeNode;
         } else {
             log.error("创建RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");

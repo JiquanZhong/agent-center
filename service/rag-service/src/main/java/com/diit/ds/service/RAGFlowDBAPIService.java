@@ -51,4 +51,54 @@ public interface RAGFlowDBAPIService {
      * @return 列表数据集响应
      */
     RAGFlowDatasetListResp listDatasets(RAGFlowDatasetListReq req);
+    
+    /**
+     * 创建通用类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission);
+    
+    /**
+     * 创建法律类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission);
+    
+    /**
+     * 创建论文类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission);
+    
+    /**
+     * 创建书籍类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission);
+    
+    /**
+     * 创建问答对类型数据集
+     * 
+     * @param name 数据集名称
+     * @param description 数据集描述
+     * @param permission 权限设置，默认为"me"
+     * @return 创建的数据集信息
+     */
+    RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission);
 }
