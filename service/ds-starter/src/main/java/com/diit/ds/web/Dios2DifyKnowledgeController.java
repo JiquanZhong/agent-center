@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/dios/api/knowledge")
+@RequestMapping("/api/dios/api/knowledge")
 @Tag(name = "DIOS知识库知识查询", description = "DIOS使用的知识库相关接口")
 public class Dios2DifyKnowledgeController {
 

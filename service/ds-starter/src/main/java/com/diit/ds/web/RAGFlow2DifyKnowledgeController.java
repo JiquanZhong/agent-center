@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestController
-@RequestMapping("/ragflow/api/knowledge")
+@RequestMapping("/api/ragflow/api/knowledge")
 @Tag(name = "知识库知识查询", description = "Dify使用的知识库相关接口")
 public class RAGFlow2DifyKnowledgeController {
 
