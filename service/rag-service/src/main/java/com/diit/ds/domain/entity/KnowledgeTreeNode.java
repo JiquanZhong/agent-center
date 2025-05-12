@@ -91,4 +91,52 @@ public class KnowledgeTreeNode {
      */
     @TableField("type")
     private String type;
+
+    /**
+     * 是否智能推荐：ai || custom
+     */
+    @TableField("auto_select")
+    private String autoSelect;
+
+    /**
+     * 文档大小
+     */
+    @TableField("document_size")
+    private Long documentSize;
+
+    /**
+     * 词元数量
+     */
+    @TableField("token_num")
+    private Long tokenNum;
+
+    /**
+     * 文本块数量
+     */
+    @TableField("chunk_num")
+    private Integer chunkNum;
+
+    /**
+     * 分隔符，默认为"\n!?;。；！？"
+     */
+    @TableField("delimiter")
+    private String delimiter;
+
+    /**
+     * 分块token数量，默认为1024
+     */
+    @TableField("chunk_token_num")
+    private Integer chunkTokenNum;
+
+    /**
+     * 是否进行自动关键词提取
+     */
+    @TableField("auto_keywords")
+    private Integer autoKeywords;
+
+    /**
+     * 是否进行问题提取
+     */
+    @TableField("auto_questions")
+    private Integer autoQuestions;
 }

@@ -43,6 +43,40 @@ public class KnowledgeTreeNodeDTO {
     private String description;
 
     /**
+     * 节点类型
+     */
+    private String type;
+
+    /**
+     * 是否智能推荐：ai || custom
+     */
+    @JsonProperty("auto_select")
+    private String autoSelect;
+
+    /**
+     * 分隔符，默认为"\n!?;。；！？"
+     */
+    private String delimiter;
+
+    /**
+     * 分块token数量，默认为1024
+     */
+    @JsonProperty("chunk_token_num")
+    private Integer chunkTokenNum;
+
+    /**
+     * 是否进行自动关键词提取
+     */
+    @JsonProperty("auto_keywords")
+    private Integer autoKeywords;
+
+    /**
+     * 是否进行问题提取
+     */
+    @JsonProperty("auto_questions")
+    private Integer autoQuestions;
+
+    /**
      * 文档数量
      */
     @JsonProperty("document_num")

@@ -1,6 +1,7 @@
 package com.diit.ds.web;
 
 import com.diit.ds.domain.dto.KnowledgeTreeNodeDTO;
+import com.diit.ds.domain.dto.KnowledgeTreeStatisticDTO;
 import com.diit.ds.domain.entity.KnowledgeTreeNode;
 import com.diit.ds.domain.req.KnowledgeTreeNodeCreateReq;
 import com.diit.ds.domain.req.KnowledgeTreeNodeUpdateReq;
@@ -98,11 +99,22 @@ public class KnowledgeController {
         }
     }
 
+    @Operation(summary = "获取当前子树统计信息", description = "获取当前层级统计信息")
+    @GetMapping("/statistic")
+    public ResponseEntity<KnowledgeTreeStatisticDTO> getKnowledgeTreeStatistic(String pid) {
+        KnowledgeTreeStatisticDTO tree = knowledgeTreeNodeService.getTreeNodeStatisticDTO(pid);
+        if (tree != null) {
+            return ResponseEntity.ok(tree);
+        } else {
+            return ResponseEntity.noContent().build();
+        }
+    }
+
     @Operation(summary = "更新所有节点的文档数量", description = "更新所有知识树节点的文档数量")
     @PostMapping("/updateDocNum")
     @Deprecated
     public ResponseEntity<?> updateAllNodesDocumentNum() {
-        knowledgeTreeNodeService.updateAllNodesDocumentNum();
+        knowledgeTreeNodeService.updateAllNodesStatistic();
         return ResponseEntity.status(HttpStatus.OK).body("更新成功");
     }
 }

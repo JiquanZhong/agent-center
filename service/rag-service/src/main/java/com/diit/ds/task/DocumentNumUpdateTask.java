@@ -1,6 +1,5 @@
 package com.diit.ds.task;
 
-import com.diit.ds.domain.dto.KnowledgeTreeNodeDTO;
 import com.diit.ds.service.KnowledgeTreeNodeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,17 +24,17 @@ public class DocumentNumUpdateTask implements ApplicationRunner {
      */
     @Scheduled(cron = "0 0 2 * * ?")
     public void scheduledUpdateDocumentNum() {
-        log.info("开始执行知识树节点文档数量定时更新任务");
+        log.info("开始执行知识树节点统计信息定时更新任务");
         try {
-            // 更新所有实际节点的文档数量
-            knowledgeTreeNodeService.updateAllNodesDocumentNum();
+            // 更新所有实际节点的统计信息
+            knowledgeTreeNodeService.updateAllNodesStatistic();
             
             // 获取树结构，这会触发虚拟根节点文档数量的计算
             knowledgeTreeNodeService.getTreeNodeDTO();
             
-            log.info("知识树节点文档数量定时更新任务执行完成");
+            log.info("知识树节点统计信息定时更新任务执行完成");
         } catch (Exception e) {
-            log.error("知识树节点文档数量定时更新任务执行失败", e);
+            log.error("知识树节点统计信息定时更新任务执行失败", e);
         }
     }
     
@@ -45,20 +44,20 @@ public class DocumentNumUpdateTask implements ApplicationRunner {
     @Override
     @Async
     public void run(ApplicationArguments args) {
-        log.info("应用启动，开始执行知识树节点文档数量初始化更新");
+        log.info("应用启动，开始执行知识树节点统计信息初始化更新");
         try {
             // 等待3分钟后执行，确保所有服务都已经启动完成
-            Thread.sleep(180000);
+            Thread.sleep(3000);
             
             // 更新所有实际节点的文档数量
-            knowledgeTreeNodeService.updateAllNodesDocumentNum();
+            knowledgeTreeNodeService.updateAllNodesStatistic();
             
             // 获取树结构，这会触发虚拟根节点文档数量的计算
             knowledgeTreeNodeService.getTreeNodeDTO();
             
-            log.info("知识树节点文档数量初始化更新完成");
+            log.info("知识树节点统计信息初始化更新完成");
         } catch (Exception e) {
-            log.error("知识树节点文档数量初始化更新失败", e);
+            log.error("知识树节点统计信息初始化更新失败", e);
         }
     }
 } 

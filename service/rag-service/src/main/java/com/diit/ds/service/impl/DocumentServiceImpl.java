@@ -30,6 +30,36 @@ public class DocumentServiceImpl extends ServiceImpl<DocumentMapper, Document>
                 .count()
                 .intValue();
     }
+
+    @Override
+    public Long countDocumentSizeByKbId(String kbId) {
+        return lambdaQuery()
+                .eq(Document::getKbId, kbId)
+                .list()
+                .stream()
+                .mapToLong(Document::getSize)
+                .sum();
+    }
+
+    @Override
+    public Long countTokensByKbId(String kbId) {
+        return lambdaQuery()
+                .eq(Document::getKbId, kbId)
+                .list()
+                .stream()
+                .mapToLong(Document::getTokenNum)
+                .sum();
+    }
+
+    @Override
+    public Integer countChunksByKbId(String kbId) {
+        return lambdaQuery()
+                .eq(Document::getKbId, kbId)
+                .list()
+                .stream()
+                .mapToInt(Document::getChunkNum)
+                .sum();
+    }
 }
 
 

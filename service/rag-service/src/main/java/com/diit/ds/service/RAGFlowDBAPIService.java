@@ -60,7 +60,7 @@ public interface RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission);
+    RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions);
     
     /**
      * 创建法律类型数据集
@@ -70,7 +70,7 @@ public interface RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission);
+    RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions);
     
     /**
      * 创建论文类型数据集
@@ -80,7 +80,7 @@ public interface RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission);
+    RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions);
     
     /**
      * 创建书籍类型数据集
@@ -90,7 +90,7 @@ public interface RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission);
+    RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions);
     
     /**
      * 创建问答对类型数据集
@@ -100,5 +100,5 @@ public interface RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission);
+    RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions);
 }

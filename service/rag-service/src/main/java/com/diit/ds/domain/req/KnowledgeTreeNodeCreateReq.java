@@ -41,4 +41,29 @@ public class KnowledgeTreeNodeCreateReq {
      * 节点类型
      */
     private String type;
+
+    /**
+     * 是否智能推荐：ai || custom
+     */
+    private String autoSelect;
+
+    /**
+     * 分隔符，默认为"\n!?;。；！？"
+     */
+    private String delimiter;
+
+    /**
+     * 分块token数量，默认为1024
+     */
+    private Integer chunkTokenNum;
+
+    /**
+     * 是否进行自动关键词提取
+     */
+    private Integer autoKeywords;
+
+    /**
+     * 是否进行问题提取
+     */
+    private Integer autoQuestions;
 }

@@ -14,6 +14,7 @@ import com.diit.ds.domain.resp.RAGFlowKnowledgeResp;
 import com.diit.ds.service.RAGFlowDBAPIService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.logging.log4j.util.Strings;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -304,34 +305,34 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             graphRAGConfig.setUseGraphRAG(false);
             parserConfig.setGraphrag(graphRAGConfig);
         }
-        
-        // 根据不同分块方法配置不同的parser_config
-        switch (chunkMethod) {
-            case "naive":
-                // 通用类型
-                configureNaiveParserConfig(parserConfig);
-                break;
-            case "manual":
-                // 法律类型
-                configureSimpleParserConfig(parserConfig);
-                break;
-            case "paper":
-                // 论文类型
-                configureSimpleParserConfig(parserConfig);
-                break;
-            case "book":
-                // 书籍类型
-                configureSimpleParserConfig(parserConfig);
-                break;
-            case "qa":
-                // 问答对类型 - 仅保留raptor和graphrag配置
-                configureQAParserConfig(parserConfig);
-                break;
-            default:
-                // 默认使用通用配置
-                configureNaiveParserConfig(parserConfig);
-                break;
-        }
+//
+//        // 根据不同分块方法配置不同的parser_config
+//        switch (chunkMethod) {
+//            case "naive":
+//                // 通用类型
+//                configureNaiveParserConfig(parserConfig);
+//                break;
+//            case "manual":
+//                // 法律类型
+//                configureSimpleParserConfig(parserConfig);
+//                break;
+//            case "paper":
+//                // 论文类型
+//                configureSimpleParserConfig(parserConfig);
+//                break;
+//            case "book":
+//                // 书籍类型
+//                configureSimpleParserConfig(parserConfig);
+//                break;
+//            case "qa":
+//                // 问答对类型 - 仅保留raptor和graphrag配置
+//                configureQAParserConfig(parserConfig);
+//                break;
+//            default:
+//                // 默认使用通用配置
+//                configureNaiveParserConfig(parserConfig);
+//                break;
+//        }
         
         log.info("根据chunk_method[{}]配置parser_config完成", chunkMethod);
     }
@@ -388,12 +389,25 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    public RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission) {
+    public RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
         RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
         req.setName(name);
         req.setDescription(description);
         req.setPermission(permission != null ? permission : "team");
         req.setChunkMethod("naive");
+
+        if (Strings.isNotBlank(delimiter)) {
+            req.getParserConfig().setDelimiter(delimiter);
+        }
+        if (chunkTokenNum != null) {
+            req.getParserConfig().setChunkTokenNum(chunkTokenNum);
+        }
+        if (autoKeywords != null) {
+            req.getParserConfig().setAutoKeywords(autoKeywords);
+        }
+        if (autoQuestions != null) {
+            req.getParserConfig().setAutoQuestions(autoQuestions);
+        }
         
         return createDataset(req);
     }
@@ -406,12 +420,25 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    public RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission) {
+    public RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
         RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
         req.setName(name);
         req.setDescription(description);
         req.setPermission(permission != null ? permission : "team");
         req.setChunkMethod("manual");
+
+        if (Strings.isNotBlank(delimiter)) {
+            req.getParserConfig().setDelimiter(delimiter);
+        }
+        if (chunkTokenNum != null) {
+            req.getParserConfig().setChunkTokenNum(chunkTokenNum);
+        }
+        if (autoKeywords != null) {
+            req.getParserConfig().setAutoKeywords(autoKeywords);
+        }
+        if (autoQuestions != null) {
+            req.getParserConfig().setAutoQuestions(autoQuestions);
+        }
         
         return createDataset(req);
     }
@@ -424,12 +451,25 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    public RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission) {
+    public RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
         RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
         req.setName(name);
         req.setDescription(description);
         req.setPermission(permission != null ? permission : "team");
         req.setChunkMethod("paper");
+
+        if (Strings.isNotBlank(delimiter)) {
+            req.getParserConfig().setDelimiter(delimiter);
+        }
+        if (chunkTokenNum != null) {
+            req.getParserConfig().setChunkTokenNum(chunkTokenNum);
+        }
+        if (autoKeywords != null) {
+            req.getParserConfig().setAutoKeywords(autoKeywords);
+        }
+        if (autoQuestions != null) {
+            req.getParserConfig().setAutoQuestions(autoQuestions);
+        }
         
         return createDataset(req);
     }
@@ -442,12 +482,25 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    public RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission) {
+    public RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
         RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
         req.setName(name);
         req.setDescription(description);
         req.setPermission(permission != null ? permission : "team");
         req.setChunkMethod("book");
+
+        if (Strings.isNotBlank(delimiter)) {
+            req.getParserConfig().setDelimiter(delimiter);
+        }
+        if (chunkTokenNum != null) {
+            req.getParserConfig().setChunkTokenNum(chunkTokenNum);
+        }
+        if (autoKeywords != null) {
+            req.getParserConfig().setAutoKeywords(autoKeywords);
+        }
+        if (autoQuestions != null) {
+            req.getParserConfig().setAutoQuestions(autoQuestions);
+        }
         
         return createDataset(req);
     }
@@ -460,13 +513,26 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
      * @param permission 权限设置，默认为"me"
      * @return 创建的数据集信息
      */
-    public RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission) {
+    public RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
         RAGFlowDatasetCreateReq req = new RAGFlowDatasetCreateReq();
         req.setName(name);
         req.setDescription(description);
         req.setPermission(permission != null ? permission : "team");
         req.setChunkMethod("qa");
-        
+
+        if (Strings.isNotBlank(delimiter)) {
+            req.getParserConfig().setDelimiter(delimiter);
+        }
+        if (chunkTokenNum != null) {
+            req.getParserConfig().setChunkTokenNum(chunkTokenNum);
+        }
+        if (autoKeywords != null) {
+            req.getParserConfig().setAutoKeywords(autoKeywords);
+        }
+        if (autoQuestions != null) {
+            req.getParserConfig().setAutoQuestions(autoQuestions);
+        }
+
         return createDataset(req);
     }
 }

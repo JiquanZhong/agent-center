@@ -21,4 +21,24 @@ public interface DocumentService extends IService<Document> {
      */
     Integer countDocumentsByKbId(String kbId);
 
+    /**
+     * 根据知识库ID获取文档大小
+     * @param kbId 知识库ID
+     * @return 文档大小
+     */
+    Long countDocumentSizeByKbId(String kbId);
+
+    /**
+     * 根据知识库ID获取词元数量
+     * @param kbId 知识库ID
+     * @return 词元数量
+     */
+    Long countTokensByKbId(String kbId);
+
+    /**
+     * 根据知识库ID获取文本块数量
+     * @param kbId 知识库ID
+     * @return 文本块数量
+     */
+    Integer countChunksByKbId(String kbId);
 }

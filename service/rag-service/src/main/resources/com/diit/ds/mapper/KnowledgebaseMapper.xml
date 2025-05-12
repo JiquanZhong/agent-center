@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.diit.ds.mapper.KnowledgebaseMapper">
+
+    <resultMap id="BaseResultMap" type="com.diit.ds.domain.entity.Knowledgebase">
+            <id property="id" column="id" />
+            <result property="create_time" column="create_time" />
+            <result property="create_date" column="create_date" />
+            <result property="update_time" column="update_time" />
+            <result property="update_date" column="update_date" />
+            <result property="avatar" column="avatar" />
+            <result property="tenant_id" column="tenant_id" />
+            <result property="name" column="name" />
+            <result property="language" column="language" />
+            <result property="description" column="description" />
+            <result property="embd_id" column="embd_id" />
+            <result property="permission" column="permission" />
+            <result property="created_by" column="created_by" />
+            <result property="doc_num" column="doc_num" />
+            <result property="token_num" column="token_num" />
+            <result property="chunk_num" column="chunk_num" />
+            <result property="similarity_threshold" column="similarity_threshold" />
+            <result property="vector_similarity_weight" column="vector_similarity_weight" />
+            <result property="parser_id" column="parser_id" />
+            <result property="parser_config" column="parser_config" />
+            <result property="pagerank" column="pagerank" />
+            <result property="status" column="status" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,create_time,create_date,update_time,update_date,avatar,
+        tenant_id,name,language,description,embd_id,
+        permission,created_by,doc_num,token_num,chunk_num,
+        similarity_threshold,vector_similarity_weight,parser_id,parser_config,pagerank,
+        status
+    </sql>
+</mapper>
