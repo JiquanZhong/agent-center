@@ -23,6 +23,7 @@ public class KnowledgeTreeNode {
     /**
      * ragflow中的kdb_id
      */
+
     @TableField("kdb_id")
     private String kdbId;
 

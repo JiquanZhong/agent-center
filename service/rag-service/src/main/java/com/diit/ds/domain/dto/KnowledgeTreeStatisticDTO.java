@@ -20,7 +20,6 @@ public class KnowledgeTreeStatisticDTO {
     /**
      * ragflow中的kdb_id
      */
-    @JsonProperty("kdb_id")
     private String kdbId;
 
     /**
@@ -31,7 +30,6 @@ public class KnowledgeTreeStatisticDTO {
     /**
      * 节点排序
      */
-    @JsonProperty("sort_order")
     private Integer sortOrder;
 
     /**
@@ -42,32 +40,27 @@ public class KnowledgeTreeStatisticDTO {
     /**
      * 文档数量
      */
-    @JsonProperty("document_num")
     private Integer documentNum;
 
 
     /**
      * 文档大小
      */
-    @JsonProperty("document_size")
     private Long documentSize;
 
     /**
      * 词元数量
      */
-    @JsonProperty("token_num")
     private Long tokenNum;
 
     /**
      * 文本块数量
      */
-    @JsonProperty("chunk_num")
     private Integer chunkNum;
 
     /**
      * 是否可以下钻
      */
-    @JsonProperty("has_children")
     private Boolean hasChildren;
 
     /**
