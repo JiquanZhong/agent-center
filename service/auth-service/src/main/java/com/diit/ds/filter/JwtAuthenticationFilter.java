@@ -1,8 +1,10 @@
 package com.diit.ds.filter;
 
 import com.diit.ds.annotation.*;
+import com.diit.ds.annotation.JwtAuthTypeCondition;
 import com.diit.ds.context.UserContext;
 import com.diit.ds.util.JwtUtil;
+import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,15 +31,22 @@ import java.util.Map;
  */
 @Slf4j
 @Component
+@JwtAuthTypeCondition
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    @Qualifier("requestMappingHandlerMapping")
+    
+    private final Cache<String, Map<String, String>> userInfoCache;
     private final RequestMappingHandlerMapping handlerMapping;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil,
-                                   @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping handlerMapping) {
+    /**
+     * 是否启用安全认证
+     */
+    public JwtAuthenticationFilter(final JwtUtil jwtUtil,
+                                   @Qualifier("jwtUserInfoCache")Cache<String, Map<String, String>> userInfoCache,
+                                   @Qualifier("requestMappingHandlerMapping")RequestMappingHandlerMapping handlerMapping) {
         this.jwtUtil = jwtUtil;
+        this.userInfoCache = userInfoCache;
         this.handlerMapping = handlerMapping;
     }
 
@@ -63,7 +72,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-
             // 检查是否是不需要认证的接口
             if (isNotNeedAuthEndpoint(request)) {
                 log.debug("跳过认证: {} {}", request.getMethod(), request.getRequestURI());
@@ -85,6 +93,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 提取JWT令牌
             String token = authHeader.substring(7);
 
+            // 首先从缓存中检查用户信息
+            Map<String, String> userInfo = userInfoCache.getIfPresent(token);
+            if (userInfo != null) {
+                // 如果缓存中存在，直接设置用户上下文
+                setUserContext(userInfo);
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             // 验证JWT令牌
             if (!jwtUtil.validateToken(token)) {
                 log.warn("无效的JWT令牌: {}", request.getRequestURI());
@@ -93,26 +110,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // 解析JWT中的用户信息并存储到上下文中
-            Map<String, String> userInfo = jwtUtil.parseUserInfo(token);
-            if (userInfo != null) {
-                // 设置用户上下文
-                if (userInfo.containsKey("userName")) {
-                    UserContext.setUserName(userInfo.get("userName"));
-                }
-                if (userInfo.containsKey("userId")) {
-                    UserContext.setUserId(userInfo.get("userId"));
-                }
-                if (userInfo.containsKey("loginName")) {
-                    UserContext.setLoginName(userInfo.get("loginName"));
-                }
-                if (userInfo.containsKey("userRoles")) {
-                    UserContext.setUserRoles(userInfo.get("userRoles"));
-                }
-                log.debug("已设置用户上下文: {}", UserContext.getAttributes());
-            } else {
+            // 解析JWT获取用户信息
+            userInfo = jwtUtil.parseUserInfo(token);
+            if (userInfo == null) {
                 log.warn("无法解析JWT中的用户信息: {}", token);
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                response.getWriter().write("无效的JWT令牌：无法解析用户信息");
+                return;
             }
+
+            // 将用户信息存入缓存
+            userInfoCache.put(token, userInfo);
+
+            // 设置用户上下文
+            setUserContext(userInfo);
 
             // 检查是否需要管理员权限
             if (isNeedAdminRoleEndpoint(request)) {
@@ -123,7 +134,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     response.getWriter().write("需要管理员权限");
                     return;
                 }
-                //userRoles按逗号分隔，分离为一个数组
                 String[] roles = userRoles.split(",");
                 if (!Arrays.asList(roles).contains("管理员")){
                     log.warn("需要管理员权限: {}", request.getRequestURI());
@@ -142,6 +152,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 清除用户上下文，防止内存泄漏
             UserContext.clear();
         }
+    }
+
+    /**
+     * 设置用户上下文信息
+     *
+     * @param userInfo 用户信息
+     */
+    private void setUserContext(Map<String, String> userInfo) {
+        if (userInfo.containsKey("userName")) {
+            UserContext.setUserName(userInfo.get("userName"));
+        }
+        if (userInfo.containsKey("userId")) {
+            UserContext.setUserId(userInfo.get("userId"));
+        }
+        if (userInfo.containsKey("loginName")) {
+            UserContext.setLoginName(userInfo.get("loginName"));
+        }
+        if (userInfo.containsKey("userRoles")) {
+            UserContext.setUserRoles(userInfo.get("userRoles"));
+        }
+        log.debug("已设置用户上下文: {}", UserContext.getAttributes());
     }
 
     /**

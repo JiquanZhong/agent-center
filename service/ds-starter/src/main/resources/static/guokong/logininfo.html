@@ -1,0 +1,68 @@
+﻿<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10, user-scalable=yes">
+    <meta charset="UTF-8">
+    <title>用户登录验证</title>
+    <link href="favicon.ico" rel="shortcut icon"/>
+    <script src="sm4.js" type="text/javascript"></script>
+    <script src="jquery.min.js" type="text/javascript"></script>
+    <script id="microloader" type="text/javascript">
+        var TOKEN = 'TOKEN';
+        let sm4Config = {
+            //配置sm4参数
+            key: 'administrator@cn', //这里这个key值是跟后端要的
+            mode: 'cbc', // 加密的方式有两种，ecb和cbc两种，也是看后端如何定义的，不过要是cbc的话下面还要加一个iv的参数，ecb不用
+            iv: 'administrator@cn',
+            cipherType: 'base64',
+        };
+        let sm4 = new SM4(sm4Config);
+
+        function userLogin() {
+            $.ajax({
+                contentType: 'application/json;charset=utf-8',
+                cache: false,
+                type: 'POST',
+                url: 'http://192.168.164.45:8021/datahub/usercenter/userinfo/userLogin',
+                data: JSON.stringify({"username": "security", "password": sm4.encrypt('1qaz@WSX')}),//测试用户名：security、密码：1qaz@WSX
+                success: function (result) {
+                    TOKEN = result.data.caNo;
+                    document.getElementById("countdown").innerHTML = '当前登录用户<br/>' + result.data.id + '<br/>' + result.data.trueName;
+                }
+            });
+        }
+
+        function validation() {
+            $.ajax({
+                url: 'http://192.168.164.45:8021/datahub/usercenter/userinfo/validation/' + TOKEN,
+                success: function (result) {
+                    if (200 == result.statusCode) {
+                        document.getElementById("countdown").innerHTML = '当前登录用户<br/>' + result.data.id + '<br/>' + result.data.trueName;
+                    } else {
+                        document.getElementById("countdown").innerHTML = '当前登录用户<br/>' + result.message;
+                    }
+                }
+            });
+        }
+
+        function logout() {
+			window.location = 'http://192.168.164.45:8021/datahub/usercenter/userinfo/logout/' + TOKEN;
+        }
+        function login() {
+			window.location = 'http://192.168.164.45:8021/portal/#/login';
+        }
+    </script>
+</head>
+<body>
+<span style="color:red" id="countdown"></span>
+<br/>
+<a href="javascript:userLogin();">用户密码验证</a>
+<br/>
+<a href="javascript:validation();">查询当前登录状态</a>
+<br/>
+<a href="javascript:logout();">注销登录状态</a>
+<br/>
+<a href="javascript:login();">访问登录页</a>
+</body>
+</html>

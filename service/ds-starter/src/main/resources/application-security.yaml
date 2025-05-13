@@ -1,6 +1,7 @@
 diit:
   security:
     enabled: true
+    auth-type: ${AUTH_TYPE:JWT}
   #加密相关配置
   crypto:
     #新增用户的默认密码（重置密码）,添加引号防止被特殊处理为一个0
@@ -15,3 +16,5 @@ diit:
     sm4-secret-key: diitdiitdiitdiit
     # JWT鉴权密钥
     jwt-secret-key: eyJzdWIiOiJ7XCJsb2dpbk5hbWVcIjpcImFkbWluXCIsXCJ1c2VySWRcIjpcIi0xXCIsXCJ1c2VyTmFtZVwiOlwi6LaF57qn566h55CG5ZGYXCJ9IiwiaWF0IjoxNzQzMTQ0OTUzLCJleHAiOjE3NDU3MzY5NTN9
+  sso:
+    external-system-validation-url: ${SSO_VALIDATION_URL:http://192.168.164.45:8021/datahub/usercenter/userinfo/validation}
