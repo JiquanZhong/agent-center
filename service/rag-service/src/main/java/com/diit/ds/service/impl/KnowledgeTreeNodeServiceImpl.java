@@ -56,22 +56,143 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
     @Transactional(rollbackFor = Exception.class)
     public KnowledgeTreeNode createNode(KnowledgeTreeNodeCreateReq createReq) {
         KnowledgeTreeNode knowledgeTreeNode = KnowledgeTreeNodeSM.INSTANCE.createDTO2Entity(createReq);
+        
+        // 初始化填充默认值
+        fillDefaultValues(knowledgeTreeNode);
+        
+        String nodeType = null;
 
-        // 获取节点类型
-        String nodeType = createReq.getType();
+        // 处理节点配置（智能推荐或自定义）
+        nodeType = handleNodeConfiguration(createReq, knowledgeTreeNode);
         log.info("创建知识树节点，节点名称: {}, 节点类型: {}", knowledgeTreeNode.getName(), nodeType);
 
         // 创建RAGFlow数据集
-        RAGFlowDatasetCreateResp resp;
+        RAGFlowDatasetCreateResp resp = createRAGFlowDataset(nodeType, createReq);
 
+        // 检查API调用结果并处理
+        if (resp != null && resp.getCode() == 0 && resp.getData() != null) {
+            // 设置节点层级
+            setNodeLevel(knowledgeTreeNode);
+
+            // 设置节点属性
+            setNodeAttributes(knowledgeTreeNode, resp, nodeType, createReq);
+
+            // 保存到数据库
+            if (baseMapper.insert(knowledgeTreeNode) != 1) {
+                log.error("知识树节点创建失败，ID: {}, RAGFlow数据集ID: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId());
+                throw new RuntimeException("知识树节点创建失败");
+            }
+            log.info("知识树节点创建成功，ID: {}, RAGFlow数据集ID: {}, 类型: {}, 自动选择: {}", 
+                    knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId(), nodeType, createReq.getAutoSelect());
+            return knowledgeTreeNode;
+        } else {
+            handleRAGFlowDatasetCreationFailure(resp);
+            return null; // 不会执行到这里，因为上面的方法会抛出异常
+        }
+    }
+
+    /**
+     * 处理节点配置（智能推荐或自定义）
+     * 
+     * @param createReq 创建请求
+     * @param knowledgeTreeNode 知识树节点
+     * @return 节点类型
+     */
+    private String handleNodeConfiguration(KnowledgeTreeNodeCreateReq createReq, KnowledgeTreeNode knowledgeTreeNode) {
+        String nodeType = null;
+        String autoSelect = createReq.getAutoSelect();
+        
+        if ("ai".equals(autoSelect) && knowledgeTreeNode.getPid() != null && !knowledgeTreeNode.getPid().isEmpty()) {
+            log.info("节点[{}]设置为智能推荐(ai)，将从父节点继承切片配置", knowledgeTreeNode.getName());
+            
+            // 获取父节点信息
+            KnowledgeTreeNode pNode = lambdaQuery()
+                    .eq(KnowledgeTreeNode::getId, knowledgeTreeNode.getPid())
+                    .one();
+            
+            if (pNode != null) {
+                // 从父节点继承配置，确保处理null值
+                nodeType = pNode.getType() != null ? pNode.getType() : "general";
+                createReq.setType(nodeType);
+                
+                // 处理分隔符
+                String delimiter = pNode.getDelimiter() != null ? pNode.getDelimiter() : "\\n!?;。；！？";
+                createReq.setDelimiter(delimiter);
+                
+                // 处理分块token数量
+                Integer chunkTokenNum = pNode.getChunkTokenNum() != null ? pNode.getChunkTokenNum() : 512;
+                createReq.setChunkTokenNum(chunkTokenNum);
+
+                Integer autoKeywords = createReq.getAutoKeywords();
+                Integer autoQuestions = createReq.getAutoQuestions();
+                
+                log.info("从父节点[{}]继承配置：类型={}, 分隔符={}, 分块token数={}, 自动关键词={}, 自动问题={}",
+                        pNode.getId(), nodeType, delimiter, chunkTokenNum, autoKeywords, autoQuestions);
+            } else if ("0".equals(knowledgeTreeNode.getPid())) {
+                // 如果父节点是根节点，则使用默认配置
+                log.info("节点[{}]的父节点是根节点，将使用默认配置", knowledgeTreeNode.getName());
+                nodeType = "general";
+                createReq.setType("general");
+                createReq.setDelimiter("\\n!?;。；！？");
+                createReq.setChunkTokenNum(512);
+                createReq.setAutoQuestions(createReq.getAutoQuestions());
+                createReq.setAutoKeywords(createReq.getAutoKeywords());
+            } else {
+                log.error("无法找到父节点[{}]", knowledgeTreeNode.getPid());
+                throw new RuntimeException("无法找到父节点");
+            }
+        } else {
+            log.info("节点[{}]设置为自定义配置(custom)或未指定，将使用提供的配置", knowledgeTreeNode.getName());
+            
+            // 确保请求中的属性有默认值
+            if (createReq.getDelimiter() == null || createReq.getDelimiter().isEmpty()) {
+                createReq.setDelimiter("\\n!?;。；！？");
+            }
+            
+            if (createReq.getChunkTokenNum() == null || createReq.getChunkTokenNum() <= 0) {
+                createReq.setChunkTokenNum(512);
+            }
+            
+            if (createReq.getAutoKeywords() == null) {
+                createReq.setAutoKeywords(5);
+            }
+            
+            if (createReq.getAutoQuestions() == null) {
+                createReq.setAutoQuestions(2);
+            }
+        }
+
+        // 获取节点类型
+        if (nodeType == null || nodeType.isEmpty()) {
+            nodeType = createReq.getType();
+            // 如果类型仍然为null，设置默认值
+            if (nodeType == null || nodeType.isEmpty()) {
+                nodeType = "general";
+                createReq.setType(nodeType);
+            }
+        }
+        
+        return nodeType;
+    }
+
+    /**
+     * 创建RAGFlow数据集
+     * 
+     * @param nodeType 节点类型
+     * @param createReq 创建请求
+     * @return RAGFlow数据集创建响应
+     */
+    private RAGFlowDatasetCreateResp createRAGFlowDataset(String nodeType, KnowledgeTreeNodeCreateReq createReq) {
+        RAGFlowDatasetCreateResp resp;
+        
         // 根据节点类型创建不同类型的数据集
         if (nodeType != null) {
             switch (nodeType.toLowerCase()) {
                 case "general":
                 case "通用":
                     resp = ragFlowDBAPIService.createGeneralDataset(
-                            knowledgeTreeNode.getName(),
-                            knowledgeTreeNode.getDescription(),
+                            createReq.getName(),
+                            createReq.getDescription(),
                             "team",
                             createReq.getDelimiter(),
                             createReq.getChunkTokenNum(),
@@ -81,8 +202,8 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                 case "laws":
                 case "法律":
                     resp = ragFlowDBAPIService.createLawsDataset(
-                            knowledgeTreeNode.getName(),
-                            knowledgeTreeNode.getDescription(),
+                            createReq.getName(),
+                            createReq.getDescription(),
                             "team",
                             createReq.getDelimiter(),
                             createReq.getChunkTokenNum(),
@@ -92,8 +213,8 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                 case "paper":
                 case "论文":
                     resp = ragFlowDBAPIService.createPaperDataset(
-                            knowledgeTreeNode.getName(),
-                            knowledgeTreeNode.getDescription(),
+                            createReq.getName(),
+                            createReq.getDescription(),
                             "team",
                             createReq.getDelimiter(),
                             createReq.getChunkTokenNum(),
@@ -103,8 +224,8 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                 case "book":
                 case "书籍":
                     resp = ragFlowDBAPIService.createBookDataset(
-                            knowledgeTreeNode.getName(),
-                            knowledgeTreeNode.getDescription(),
+                            createReq.getName(),
+                            createReq.getDescription(),
                             "team",
                             createReq.getDelimiter(),
                             createReq.getChunkTokenNum(),
@@ -115,8 +236,8 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                 case "问答":
                 case "问答对":
                     resp = ragFlowDBAPIService.createQADataset(
-                            knowledgeTreeNode.getName(),
-                            knowledgeTreeNode.getDescription(),
+                            createReq.getName(),
+                            createReq.getDescription(),
                             "team",
                             createReq.getDelimiter(),
                             createReq.getChunkTokenNum(),
@@ -127,8 +248,8 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
                     // 默认创建通用类型数据集
                     log.info("未知节点类型: {}，将创建通用类型数据集", nodeType);
                     resp = ragFlowDBAPIService.createGeneralDataset(
-                            knowledgeTreeNode.getName(),
-                            knowledgeTreeNode.getDescription(),
+                            createReq.getName(),
+                            createReq.getDescription(),
                             "team",
                             createReq.getDelimiter(),
                             createReq.getChunkTokenNum(),
@@ -140,61 +261,197 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             // 如果未指定类型，默认创建通用类型数据集
             log.info("未指定节点类型，将创建通用类型数据集");
             resp = ragFlowDBAPIService.createGeneralDataset(
-                    knowledgeTreeNode.getName(),
-                    knowledgeTreeNode.getDescription(),
+                    createReq.getName(),
+                    createReq.getDescription(),
                     "team",
                     createReq.getDelimiter(),
                     createReq.getChunkTokenNum(),
                     createReq.getAutoKeywords(),
                     createReq.getAutoQuestions());
         }
+        
+        return resp;
+    }
 
-        // 检查API调用结果
-        if (resp != null && resp.getCode() == 0 && resp.getData() != null) {
-            // 查询父节点信息
-            if (knowledgeTreeNode.getPid() == null || knowledgeTreeNode.getPid().isEmpty() || "0".equals(knowledgeTreeNode.getPid())) {
-                knowledgeTreeNode.setPid("0");
-                knowledgeTreeNode.setLevel(1);
-            } else {
-                KnowledgeTreeNode pNode = lambdaQuery()
-                        .eq(KnowledgeTreeNode::getId, knowledgeTreeNode.getPid())
-                        .one();
-                if (pNode == null) {
-                    log.error("创建失败：找不到父节点，父节点ID: {}", knowledgeTreeNode.getPid());
-                    throw new RuntimeException("找不到父节点");
-                }
-                knowledgeTreeNode.setLevel(pNode.getLevel() + 1);
-            }
-
-            // 设置数据库记录的相关字段
-            knowledgeTreeNode.setKdbId(resp.getData().getId());
-            knowledgeTreeNode.setRagflowName(resp.getData().getName());
-            knowledgeTreeNode.setEmbeddingsModel(resp.getData().getEmbeddingModel());
-            knowledgeTreeNode.setType(nodeType); // 设置节点类型
-
-            // 设置创建和更新时间
-            Date now = new Date();
-            knowledgeTreeNode.setCreateTime(now);
-            knowledgeTreeNode.setUpdateTime(now);
-
-            // 保存到数据库
-            if (baseMapper.insert(knowledgeTreeNode) != 1) {
-                log.error("知识树节点创建失败，ID: {}, RAGFlow数据集ID: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId());
-                throw new RuntimeException("知识树节点创建失败");
-            }
-            // log.info("知识树节点创建成功，ID: {}, RAGFlow数据集ID: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId());
-            log.info("知识树节点创建成功，ID: {}, RAGFlow数据集ID: {}, 类型: {}", knowledgeTreeNode.getId(), knowledgeTreeNode.getKdbId(), nodeType);
-            return knowledgeTreeNode;
+    /**
+     * 设置节点层级
+     * 
+     * @param knowledgeTreeNode 知识树节点
+     */
+    private void setNodeLevel(KnowledgeTreeNode knowledgeTreeNode) {
+        if (knowledgeTreeNode.getPid() == null || knowledgeTreeNode.getPid().isEmpty() || "0".equals(knowledgeTreeNode.getPid())) {
+            knowledgeTreeNode.setPid("0");
+            knowledgeTreeNode.setLevel(1);
         } else {
-            log.error("创建RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
-            // 删除RAGFlow数据集
-            if (resp != null && resp.getData() != null) {
-                RAGFlowDatasetDeleteReq deleteReq = new RAGFlowDatasetDeleteReq();
-                deleteReq.setIds(Arrays.asList(resp.getData().getId()));
-                ragFlowDBAPIService.deleteDatasets(deleteReq);
+            KnowledgeTreeNode pNode = lambdaQuery()
+                    .eq(KnowledgeTreeNode::getId, knowledgeTreeNode.getPid())
+                    .one();
+            if (pNode == null) {
+                log.error("创建失败：找不到父节点，父节点ID: {}", knowledgeTreeNode.getPid());
+                throw new RuntimeException("找不到父节点");
             }
-            throw new RuntimeException("创建RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
+            knowledgeTreeNode.setLevel(pNode.getLevel() + 1);
         }
+    }
+
+    /**
+     * 设置节点属性
+     * 
+     * @param knowledgeTreeNode 知识树节点
+     * @param resp RAGFlow数据集创建响应
+     * @param nodeType 节点类型
+     * @param createReq 创建请求
+     */
+    private void setNodeAttributes(KnowledgeTreeNode knowledgeTreeNode, RAGFlowDatasetCreateResp resp, String nodeType, KnowledgeTreeNodeCreateReq createReq) {
+        // 设置数据库记录的相关字段
+        knowledgeTreeNode.setKdbId(resp.getData().getId());
+        knowledgeTreeNode.setRagflowName(resp.getData().getName());
+        knowledgeTreeNode.setEmbeddingsModel(resp.getData().getEmbeddingModel());
+        knowledgeTreeNode.setType(nodeType); // 设置节点类型
+        knowledgeTreeNode.setAutoSelect(createReq.getAutoSelect()); // 设置自动选择类型
+        
+        // 从API响应中获取实际使用的配置参数
+        if (resp.getData().getParserConfig() != null) {
+            // 设置分隔符
+            knowledgeTreeNode.setDelimiter(resp.getData().getParserConfig().getDelimiter());
+            
+            // 设置分块token数量
+            knowledgeTreeNode.setChunkTokenNum(resp.getData().getParserConfig().getChunkTokenNum());
+            
+            // API响应中没有autoKeywords和autoQuestions字段，使用请求中的值
+            if (createReq.getAutoKeywords() != null) {
+                knowledgeTreeNode.setAutoKeywords(createReq.getAutoKeywords());
+            } else {
+                knowledgeTreeNode.setAutoKeywords(5);
+            }
+            
+            if (createReq.getAutoQuestions() != null) {
+                knowledgeTreeNode.setAutoQuestions(createReq.getAutoQuestions());
+            } else {
+                knowledgeTreeNode.setAutoQuestions(2);
+            }
+        } else {
+            // 如果API响应中没有parser_config，则使用请求中的值
+            // 设置分隔符
+            if(createReq.getDelimiter() != null) {
+                knowledgeTreeNode.setDelimiter(createReq.getDelimiter());
+            } else {
+                knowledgeTreeNode.setDelimiter("\\n!?;。；！？");
+            }
+
+            // 设置分块token数量
+            if (createReq.getChunkTokenNum() != null) {
+                knowledgeTreeNode.setChunkTokenNum(createReq.getChunkTokenNum());
+            } else {
+                knowledgeTreeNode.setChunkTokenNum(512);
+            }
+
+            // 设置自动关键词提取
+            if (createReq.getAutoKeywords() != null) {
+                knowledgeTreeNode.setAutoKeywords(createReq.getAutoKeywords());
+            } else {
+                knowledgeTreeNode.setAutoKeywords(5);
+            }
+
+            // 设置自动问题提取
+            if (createReq.getAutoQuestions() != null) {
+                knowledgeTreeNode.setAutoQuestions(createReq.getAutoQuestions());
+            } else {
+                knowledgeTreeNode.setAutoQuestions(2);
+            }
+        }
+
+        // 设置创建和更新时间
+        Date now = new Date();
+        knowledgeTreeNode.setDocumentNum(0);
+        knowledgeTreeNode.setDocumentSize(0L);
+        knowledgeTreeNode.setTokenNum(0L);
+        knowledgeTreeNode.setChunkNum(0);
+        knowledgeTreeNode.setCreateTime(now);
+        knowledgeTreeNode.setUpdateTime(now);
+        
+        // 填充其他可能为null的属性
+        fillDefaultValues(knowledgeTreeNode);
+    }
+    
+    /**
+     * 为KnowledgeTreeNode中的null或空属性填充默认值
+     * 
+     * @param node 知识树节点
+     */
+    private void fillDefaultValues(KnowledgeTreeNode node) {
+        // 设置排序顺序默认值
+        if (node.getSortOrder() == null) {
+            node.setSortOrder(0);
+        }
+        
+        // 设置描述默认值
+        if (node.getDescription() == null) {
+            node.setDescription("");
+        }
+        
+        // 设置自动选择默认值
+        if (node.getAutoSelect() == null) {
+            node.setAutoSelect("custom");
+        }
+        
+        // 设置节点类型默认值
+        if (node.getType() == null) {
+            node.setType("general");
+        }
+        
+        // 设置分隔符默认值
+        if (node.getDelimiter() == null) {
+            node.setDelimiter("\\n!?;。；！？");
+        }
+        
+        // 设置分块token数量默认值
+        if (node.getChunkTokenNum() == null) {
+            node.setChunkTokenNum(512);
+        }
+
+        // 设置自动关键词提取默认值
+        if (node.getAutoKeywords() == null) {
+            node.setAutoKeywords(5);
+        }
+
+        // 设置自动问题提取默认值
+        if (node.getAutoQuestions() == null) {
+            node.setAutoQuestions(2);
+        }
+        
+        // 确保统计数据初始化为0
+        if (node.getDocumentNum() == null) {
+            node.setDocumentNum(0);
+        }
+        
+        if (node.getDocumentSize() == null) {
+            node.setDocumentSize(0L);
+        }
+        
+        if (node.getTokenNum() == null) {
+            node.setTokenNum(0L);
+        }
+        
+        if (node.getChunkNum() == null) {
+            node.setChunkNum(0);
+        }
+    }
+
+    /**
+     * 处理RAGFlow数据集创建失败
+     * 
+     * @param resp RAGFlow数据集创建响应
+     */
+    private void handleRAGFlowDatasetCreationFailure(RAGFlowDatasetCreateResp resp) {
+        log.error("创建RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
+        // 删除RAGFlow数据集
+        if (resp != null && resp.getData() != null) {
+            RAGFlowDatasetDeleteReq deleteReq = new RAGFlowDatasetDeleteReq();
+            deleteReq.setIds(Arrays.asList(resp.getData().getId()));
+            ragFlowDBAPIService.deleteDatasets(deleteReq);
+        }
+        throw new RuntimeException("创建RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
     }
 
     @Override
@@ -458,7 +715,7 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         root.setType("general");
 
         // 构建节点映射，用于快速查找
-        java.util.Map<String, KnowledgeTreeNodeDTO> nodeMap = new java.util.HashMap<>();
+        Map<String, KnowledgeTreeNodeDTO> nodeMap = new HashMap<>();
         nodeMap.put("0", root);
 
         // 第一步：将所有节点转换为DTO并放入映射
