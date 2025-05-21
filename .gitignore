@@ -2,11 +2,8 @@
 /log/
 .idea
 .vscode
-volumes
 **/target
 .cursorrules
-volumes/
-volumes
 service/log
 preview
 operation/system-server/diit-system/logs
