@@ -1,0 +1,1 @@
+import{b as o}from"./index-DmjgGXwh.js";import{_ as t}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{u as r,a0 as _,a5 as s,e as a}from"./@vue-CaiV6rcx.js";const n={key:0},c={__name:"LogoHeader",setup(m){const e=o();return(p,u)=>r(e).gjMode?a("",!0):(_(),s("h2",n,"土平台基础信息平台 ｜ 后土大模型"))}},l=t(c,[["__scopeId","data-v-70baf9b7"]]);export{l as _};
