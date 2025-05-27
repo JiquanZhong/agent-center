@@ -147,6 +147,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 继续请求处理
             filterChain.doFilter(request, response);
         } catch (Exception e) {
+            log.info("服务器内部错误: " + e.getMessage());
             response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
             response.getWriter().write("服务器内部错误: " + e.getMessage());
         } finally {

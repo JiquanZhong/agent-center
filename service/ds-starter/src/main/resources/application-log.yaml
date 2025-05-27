@@ -2,8 +2,8 @@
 logging:
   config: classpath:logback-spring.xml
   level:
-    org.mybatis: warn
+    org.mybatis: debug
     org.mybatis.spring: warn
-    org.apache.ibatis: warn
+    org.apache.ibatis: debug
     org.apache.ibatis.logging.jdbc.BaseJdbcLogger: warn
-    com.diit.ds.mapper: warn
+    com.diit.ds.mapper: debug
