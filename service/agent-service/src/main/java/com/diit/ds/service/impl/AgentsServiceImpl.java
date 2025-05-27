@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.diit.ds.conts.Contsrtaint.SORT_FIELD_MAP;
+import static com.diit.ds.conts.Constraint.SORT_FIELD_MAP;
 
 /**
  * @author yjxbz
