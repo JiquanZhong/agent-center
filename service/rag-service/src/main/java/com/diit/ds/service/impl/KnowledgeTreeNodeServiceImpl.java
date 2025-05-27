@@ -660,15 +660,31 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
     @Override
     public List<KnowledgeTreeNode> getNodesByPid(String pid) {
         List<String> ids = getIdsByPid(pid);
+        // 如果ID列表为空，直接返回空列表，避免调用listByIds时出错
+        if (ids == null || ids.isEmpty()) {
+            return new ArrayList<>();
+        }
         return listByIds(ids);
     }
 
     @Override
     public List<String> getKbIdsByPid(String pid) {
-        return getNodesByPid(pid).stream()
+        log.info("开始获取节点[{}]及其子节点的知识库ID列表", pid);
+        List<KnowledgeTreeNode> nodes = getNodesByPid(pid);
+        
+        // 如果节点列表为空，直接返回空列表，避免不必要的流操作
+        if (nodes == null || nodes.isEmpty()) {
+            log.info("节点[{}]及其子节点列表为空，返回空的知识库ID列表", pid);
+            return new ArrayList<>();
+        }
+
+        List<String> kbIds = nodes.stream()
                 .map(KnowledgeTreeNode::getKdbId)
                 .filter(kdbId -> kdbId != null && !kdbId.isEmpty())
                 .collect(Collectors.toList());
+        
+        log.info("节点[{}]及其子节点共{}个，有效知识库ID共{}个：{}", pid, nodes.size(), kbIds.size(), kbIds);
+        return kbIds;
     }
 
     /**

@@ -263,6 +263,8 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
      */
     @Override
     public RAGFlowFileListResp listFiles(String treeNodeId, RAGFlowFileListReq req) {
+        log.info("开始查询文件列表，节点ID: {}, 请求参数: {}", treeNodeId, req);
+        
         if (!treeNodeId.equals("0")) {
             // 查询知识库节点信息
             KnowledgeTreeNode treeNode = knowledgeTreeNodeService.lambdaQuery()
@@ -282,11 +284,21 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
         // 获取数据集ID
 //        String datasetId = treeNode.getKdbId();
         List<String> kbIds = knowledgeTreeNodeService.getKbIdsByPid(treeNodeId);
+        log.info("获取到知识库ID列表: {}", kbIds);
         
         // 创建响应对象
         RAGFlowFileListResp resp = new RAGFlowFileListResp();
         resp.setCode(0);
         resp.setMessage(null);
+        
+        // 如果没有找到任何知识库ID，直接返回空结果
+        if (kbIds == null || kbIds.isEmpty()) {
+            RAGFlowFileListResp.FileListData fileListData = new RAGFlowFileListResp.FileListData();
+            fileListData.setTotal(0);
+            fileListData.setDocs(new ArrayList<>());
+            resp.setData(fileListData);
+            return resp;
+        }
         
         // 构建查询条件
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Document> page = 
@@ -356,8 +368,10 @@ public class KnowledgeFileServiceImpl implements KnowledgeFileService {
         }
         
         // 执行分页查询
+        log.info("开始执行分页查询，页码: {}, 页大小: {}", page.getCurrent(), page.getSize());
         com.baomidou.mybatisplus.extension.plugins.pagination.Page<Document> result = 
             documentService.page(page, queryWrapper);
+        log.info("分页查询完成，总记录数: {}, 当前页记录数: {}", result.getTotal(), result.getRecords().size());
         
         // 构造响应数据
         RAGFlowFileListResp.FileListData fileListData = new RAGFlowFileListResp.FileListData();
