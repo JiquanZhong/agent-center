@@ -68,4 +68,6 @@ public class Agents {
     @Schema(description = "公开访问url")
     private String publishUrl;
 
+    @Schema(description = "背景图")
+    private String background;
 }

@@ -64,4 +64,7 @@ public class AgentsVo {
 
     @Schema(description = "判断当前智能体是否被收藏")
     private Boolean ifFavorite;
+
+    @Schema(description = "背景图")
+    private String background;
 }
