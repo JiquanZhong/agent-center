@@ -1,6 +1,6 @@
 diit:
   security:
-    enabled: true
+    enabled: ${AUTH_ENABLE:true}
     auth-type: ${AUTH_TYPE:JWT}
   #加密相关配置
   crypto:

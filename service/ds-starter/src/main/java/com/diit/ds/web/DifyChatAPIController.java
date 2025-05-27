@@ -1,5 +1,6 @@
 package com.diit.ds.web;
 
+import com.diit.ds.context.UserContext;
 import com.diit.ds.service.LLMService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,8 @@ public class DifyChatAPIController {
             @RequestBody Map<String, Object> requestBody) {
         
         String responseMode = (String) requestBody.getOrDefault("response_mode", "blocking");
+
+        handleDefaultUserInfo(requestBody);
         
         if ("streaming".equals(responseMode)) {
             // 流式响应模式
@@ -42,7 +45,14 @@ public class DifyChatAPIController {
             return llmService.processBlockingResponse(requestBody);
         }
     }
-    
+
+    private void handleDefaultUserInfo(Map<String, Object> requestBody) {
+        if (!requestBody.containsKey("user") || requestBody.get("user") == null || requestBody.get("user").toString().isEmpty()) {
+            // 如果没有指定用户，则使用默认用户
+            requestBody.put("user", UserContext.getUserId());
+        }
+    }
+
     /**
      * 停止生成响应
      * 用于中断正在进行的流式响应
@@ -85,7 +95,7 @@ public class DifyChatAPIController {
      */
     @GetMapping("/messages")
     public Map<String, Object> getMessages(
-            @RequestParam String user,
+            @RequestParam(defaultValue = "1") String user,
             @RequestParam(required = false) String conversation_id,
             @RequestParam(required = false, defaultValue = "20") Integer limit) {
         log.info("获取消息列表，user: {}, conversation_id: {}, limit: {}", user, conversation_id, limit);
@@ -98,7 +108,7 @@ public class DifyChatAPIController {
      */
     @GetMapping("/conversations")
     public Map<String, Object> getConversations(
-            @RequestParam String user,
+            @RequestParam(defaultValue = "1") String user,
             @RequestParam(required = false) String last_id,
             @RequestParam(required = false, defaultValue = "20") Integer limit,
             @RequestParam(required = false) String keyWord) {

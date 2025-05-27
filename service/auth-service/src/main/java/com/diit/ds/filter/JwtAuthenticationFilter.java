@@ -35,7 +35,7 @@ import java.util.Map;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
-    
+
     private final Cache<String, Map<String, String>> userInfoCache;
     private final RequestMappingHandlerMapping handlerMapping;
 
@@ -43,8 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * 是否启用安全认证
      */
     public JwtAuthenticationFilter(final JwtUtil jwtUtil,
-                                   @Qualifier("jwtUserInfoCache")Cache<String, Map<String, String>> userInfoCache,
-                                   @Qualifier("requestMappingHandlerMapping")RequestMappingHandlerMapping handlerMapping) {
+                                   @Qualifier("jwtUserInfoCache") Cache<String, Map<String, String>> userInfoCache,
+                                   @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping handlerMapping) {
         this.jwtUtil = jwtUtil;
         this.userInfoCache = userInfoCache;
         this.handlerMapping = handlerMapping;
@@ -61,6 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserContext.clear();
 
             if (!enabled) {
+                setDefaultUserContext();
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -135,7 +136,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     return;
                 }
                 String[] roles = userRoles.split(",");
-                if (!Arrays.asList(roles).contains("管理员")){
+                if (!Arrays.asList(roles).contains("管理员")) {
                     log.warn("需要管理员权限: {}", request.getRequestURI());
                     response.setStatus(HttpStatus.FORBIDDEN.value());
                     response.getWriter().write("需要管理员权限");
@@ -172,6 +173,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (userInfo.containsKey("userRoles")) {
             UserContext.setUserRoles(userInfo.get("userRoles"));
         }
+        log.debug("已设置用户上下文: {}", UserContext.getAttributes());
+    }
+
+    /**
+     * 设置用户上下文信息
+     *
+     */
+    private void setDefaultUserContext() {
+        UserContext.setUserName("普通用户");
+        UserContext.setUserId("1");
+        UserContext.setLoginName("user");
+        UserContext.setUserRoles("普通用户");
         log.debug("已设置用户上下文: {}", UserContext.getAttributes());
     }
 
