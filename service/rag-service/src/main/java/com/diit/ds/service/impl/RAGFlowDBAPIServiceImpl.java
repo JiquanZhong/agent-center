@@ -39,21 +39,21 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
 
     @Override
     public RAGFlowKnowledgeResp retrieval(RAGFlowKnowledgeReq req) {
-
+        req.setRerankId(ragFlowConfig.getRerankId());
 
         try {
             // 构建请求URL
             String url = ragFlowConfig.getBaseUrl() + API_PREFIX + RETRIEVAL_ENDPOINT;
             log.info("RAGFlow API请求URL: {}", url);
-            
+
             // 设置请求头
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Authorization", ragFlowConfig.getApiKey());
-            
+
             // 创建HTTP请求实体
             HttpEntity<RAGFlowKnowledgeReq> requestEntity = new HttpEntity<>(req, headers);
-            
+
             // 发送POST请求
             ResponseEntity<RAGFlowKnowledgeResp> responseEntity = restTemplate.exchange(
                     url,
@@ -61,11 +61,11 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
                     requestEntity,
                     RAGFlowKnowledgeResp.class
             );
-            
+
             // 获取响应结果
             RAGFlowKnowledgeResp response = responseEntity.getBody();
             log.info("RAGFlow API响应状态码: {}", response != null ? response.getCode() : "null");
-            
+
             return response;
         } catch (Exception e) {
             log.error("调用RAGFlow API失败", e);
@@ -82,19 +82,24 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         try {
             // 根据chunk_method类型配置不同的parser_config
             configureParserConfigByChunkMethod(req);
-            
+            if (ragFlowConfig.getEmbeddingsId() != null && !ragFlowConfig.getEmbeddingsId().isEmpty()) {
+                req.setEmbeddingModel(ragFlowConfig.getEmbeddingsId());
+            } else {
+                req.setEmbeddingModel(null);
+            }
+
             // 构建请求URL
             String url = ragFlowConfig.getBaseUrl() + API_PREFIX + DATASETS_ENDPOINT;
             log.info("RAGFlow 创建数据集API请求URL: {}", url);
-            
+
             // 设置请求头
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Authorization", ragFlowConfig.getApiKey());
-            
+
             // 创建HTTP请求实体
             HttpEntity<RAGFlowDatasetCreateReq> requestEntity = new HttpEntity<>(req, headers);
-            
+
             // 发送POST请求
             ResponseEntity<RAGFlowDatasetCreateResp> responseEntity = restTemplate.exchange(
                     url,
@@ -102,11 +107,11 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
                     requestEntity,
                     RAGFlowDatasetCreateResp.class
             );
-            
+
             // 获取响应结果
             RAGFlowDatasetCreateResp response = responseEntity.getBody();
 
-            if(response != null && response.getCode() == 0) {
+            if (response != null && response.getCode() == 0) {
                 log.info("RAGFlow 创建数据集API响应数据集: {}", response.getData());
             } else {
                 log.error("RAGFlow 创建数据集API响应错误: {}", response != null ? response.getMessage() : "null");
@@ -129,15 +134,15 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             // 构建请求URL
             String url = ragFlowConfig.getBaseUrl() + API_PREFIX + DATASETS_ENDPOINT;
             log.info("RAGFlow 删除数据集API请求URL: {}", url);
-            
+
             // 设置请求头
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Authorization", ragFlowConfig.getApiKey());
-            
+
             // 创建HTTP请求实体
             HttpEntity<RAGFlowDatasetDeleteReq> requestEntity = new HttpEntity<>(req, headers);
-            
+
             // 发送DELETE请求
             ResponseEntity<RAGFlowDatasetDeleteResp> responseEntity = restTemplate.exchange(
                     url,
@@ -145,16 +150,16 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
                     requestEntity,
                     RAGFlowDatasetDeleteResp.class
             );
-            
+
             // 获取响应结果
             RAGFlowDatasetDeleteResp response = responseEntity.getBody();
 
-            if(response != null && response.getCode() == 0) {
+            if (response != null && response.getCode() == 0) {
                 log.info("RAGFlow 删除数据集API成功执行");
             } else {
                 log.error("RAGFlow 删除数据集API响应错误: {}", response != null ? response.getMessage() : "null");
             }
-            
+
             return response;
         } catch (Exception e) {
             log.error("调用RAGFlow 删除数据集API失败", e);
@@ -172,15 +177,15 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             // 构建请求URL
             String url = ragFlowConfig.getBaseUrl() + API_PREFIX + DATASETS_ENDPOINT + "/" + datasetId;
             log.info("RAGFlow 更新数据集API请求URL: {}", url);
-            
+
             // 设置请求头
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Authorization", ragFlowConfig.getApiKey());
-            
+
             // 创建HTTP请求实体
             HttpEntity<RAGFlowDatasetUpdateReq> requestEntity = new HttpEntity<>(req, headers);
-            
+
             // 发送PUT请求
             ResponseEntity<RAGFlowDatasetUpdateResp> responseEntity = restTemplate.exchange(
                     url,
@@ -188,16 +193,16 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
                     requestEntity,
                     RAGFlowDatasetUpdateResp.class
             );
-            
+
             // 获取响应结果
             RAGFlowDatasetUpdateResp response = responseEntity.getBody();
 
-            if(response != null && response.getCode() == 0) {
+            if (response != null && response.getCode() == 0) {
                 log.info("RAGFlow 更新数据集API成功执行");
             } else {
                 log.error("RAGFlow 更新数据集API响应错误: {}", response != null ? response.getMessage() : "null");
             }
-            
+
             return response;
         } catch (Exception e) {
             log.error("调用RAGFlow 更新数据集API失败", e);
@@ -215,7 +220,7 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             // 构建带查询参数的URL
             UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(
                     ragFlowConfig.getBaseUrl() + API_PREFIX + DATASETS_ENDPOINT);
-            
+
             // 添加查询参数
             if (req.getPage() != null) {
                 builder.queryParam("page", req.getPage());
@@ -235,18 +240,18 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             if (req.getId() != null) {
                 builder.queryParam("id", req.getId());
             }
-            
+
             String url = builder.build().toUriString();
             log.info("RAGFlow 获取数据集列表API请求URL: {}", url);
-            
+
             // 设置请求头
             HttpHeaders headers = new HttpHeaders();
             headers.set("Content-Type", "application/json");
             headers.set("Authorization", ragFlowConfig.getApiKey());
-            
+
             // 创建HTTP请求实体
             HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
-            
+
             // 发送GET请求
             ResponseEntity<RAGFlowDatasetListResp> responseEntity = restTemplate.exchange(
                     url,
@@ -254,17 +259,17 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
                     requestEntity,
                     RAGFlowDatasetListResp.class
             );
-            
+
             // 获取响应结果
             RAGFlowDatasetListResp response = responseEntity.getBody();
 
-            if(response != null && response.getCode() == 0) {
-                log.info("RAGFlow 获取数据集列表API成功执行，获取到{}个数据集", 
+            if (response != null && response.getCode() == 0) {
+                log.info("RAGFlow 获取数据集列表API成功执行，获取到{}个数据集",
                         response.getData() != null ? response.getData().size() : 0);
             } else {
                 log.error("RAGFlow 获取数据集列表API响应错误: {}", response != null ? response.getMessage() : "null");
             }
-            
+
             return response;
         } catch (Exception e) {
             log.error("调用RAGFlow 获取数据集列表API失败", e);
@@ -275,33 +280,33 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
             return errorResp;
         }
     }
-    
+
     /**
      * 根据分块方法（chunk_method）配置解析器设置（parser_config）
-     * 
+     *
      * @param req 创建数据集请求
      */
     private void configureParserConfigByChunkMethod(RAGFlowDatasetCreateReq req) {
         String chunkMethod = req.getChunkMethod();
         RAGFlowDatasetCreateReq.ParserConfig parserConfig = req.getParserConfig();
-        
+
         if (parserConfig == null) {
             parserConfig = new RAGFlowDatasetCreateReq.ParserConfig();
             req.setParserConfig(parserConfig);
         }
-        
+
         // 确保Raptor配置存在
         if (parserConfig.getRaptor() == null) {
-            RAGFlowDatasetCreateReq.ParserConfig.RaptorConfig raptorConfig = 
-                new RAGFlowDatasetCreateReq.ParserConfig.RaptorConfig();
+            RAGFlowDatasetCreateReq.ParserConfig.RaptorConfig raptorConfig =
+                    new RAGFlowDatasetCreateReq.ParserConfig.RaptorConfig();
             raptorConfig.setUseRaptor(false);
             parserConfig.setRaptor(raptorConfig);
         }
-        
+
         // 确保GraphRAG配置存在
         if (parserConfig.getGraphrag() == null) {
-            RAGFlowDatasetCreateReq.ParserConfig.GraphRAGConfig graphRAGConfig = 
-                new RAGFlowDatasetCreateReq.ParserConfig.GraphRAGConfig();
+            RAGFlowDatasetCreateReq.ParserConfig.GraphRAGConfig graphRAGConfig =
+                    new RAGFlowDatasetCreateReq.ParserConfig.GraphRAGConfig();
             graphRAGConfig.setUseGraphRAG(false);
             parserConfig.setGraphrag(graphRAGConfig);
         }
@@ -333,10 +338,10 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
 //                configureNaiveParserConfig(parserConfig);
 //                break;
 //        }
-        
+
         log.info("根据chunk_method[{}]配置parser_config完成", chunkMethod);
     }
-    
+
     /**
      * 配置通用类型的解析器设置
      */
@@ -350,7 +355,7 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         parserConfig.setHtml4excel(false);
         parserConfig.setTaskPageSize(12);
     }
-    
+
     /**
      * 配置简单类型的解析器设置（适用于manual、paper、book、laws等）
      */
@@ -359,14 +364,14 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         parserConfig.setLayoutRecognize("DeepDOC");
         parserConfig.setAutoKeywords(5);
         parserConfig.setAutoQuestions(2);
-        
+
         // 清除不需要的字段
         parserConfig.setChunkTokenNum(null);
         parserConfig.setDelimiter(null);
         parserConfig.setHtml4excel(null);
         parserConfig.setTaskPageSize(null);
     }
-    
+
     /**
      * 配置问答对类型的解析器设置
      */
@@ -383,10 +388,10 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
 
     /**
      * 创建通用类型数据集
-     * 
-     * @param name 数据集名称
+     *
+     * @param name        数据集名称
      * @param description 数据集描述
-     * @param permission 权限设置，默认为"me"
+     * @param permission  权限设置，默认为"me"
      * @return 创建的数据集信息
      */
     public RAGFlowDatasetCreateResp createGeneralDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
@@ -408,16 +413,16 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         if (autoQuestions != null) {
             req.getParserConfig().setAutoQuestions(autoQuestions);
         }
-        
+
         return createDataset(req);
     }
-    
+
     /**
      * 创建法律类型数据集
-     * 
-     * @param name 数据集名称
+     *
+     * @param name        数据集名称
      * @param description 数据集描述
-     * @param permission 权限设置，默认为"me"
+     * @param permission  权限设置，默认为"me"
      * @return 创建的数据集信息
      */
     public RAGFlowDatasetCreateResp createLawsDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
@@ -439,16 +444,16 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         if (autoQuestions != null) {
             req.getParserConfig().setAutoQuestions(autoQuestions);
         }
-        
+
         return createDataset(req);
     }
-    
+
     /**
      * 创建论文类型数据集
-     * 
-     * @param name 数据集名称
+     *
+     * @param name        数据集名称
      * @param description 数据集描述
-     * @param permission 权限设置，默认为"me"
+     * @param permission  权限设置，默认为"me"
      * @return 创建的数据集信息
      */
     public RAGFlowDatasetCreateResp createPaperDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
@@ -470,16 +475,16 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         if (autoQuestions != null) {
             req.getParserConfig().setAutoQuestions(autoQuestions);
         }
-        
+
         return createDataset(req);
     }
-    
+
     /**
      * 创建书籍类型数据集
-     * 
-     * @param name 数据集名称
+     *
+     * @param name        数据集名称
      * @param description 数据集描述
-     * @param permission 权限设置，默认为"me"
+     * @param permission  权限设置，默认为"me"
      * @return 创建的数据集信息
      */
     public RAGFlowDatasetCreateResp createBookDataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {
@@ -501,16 +506,16 @@ public class RAGFlowDBAPIServiceImpl implements RAGFlowDBAPIService {
         if (autoQuestions != null) {
             req.getParserConfig().setAutoQuestions(autoQuestions);
         }
-        
+
         return createDataset(req);
     }
-    
+
     /**
      * 创建问答对类型数据集
-     * 
-     * @param name 数据集名称
+     *
+     * @param name        数据集名称
      * @param description 数据集描述
-     * @param permission 权限设置，默认为"me"
+     * @param permission  权限设置，默认为"me"
      * @return 创建的数据集信息
      */
     public RAGFlowDatasetCreateResp createQADataset(String name, String description, String permission, String delimiter, Integer chunkTokenNum, Integer autoKeywords, Integer autoQuestions) {

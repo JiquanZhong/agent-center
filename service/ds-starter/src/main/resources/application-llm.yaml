@@ -13,6 +13,8 @@ rag-flow:
   api:
     base-url: ${RAGFLOW_URL:http://192.9.100.11:8000}
     api-key: ${RAGFLOW_API_KEY:Bearer ragflow-lkODFmN2Y0MGFjYTExZjBiYjE2MDI0Mm}
+    embeddings_id: ${RAGFLOW_EMBEDDINGS_ID}
+    reranker-id: ${RAGFLOW_RERANKER_ID:bge-reranker-large@Xinference}
 
 diit:
   dios:

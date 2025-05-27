@@ -34,7 +34,7 @@ public class RAGFlowKnowledgeReq {
     private Integer topK;
 
     @JsonProperty("rerank_id")
-    private String rerankId = "bge-reranker-large@Xinference";
+    private String rerankId;
 
     @JsonProperty("keyword")
     private Boolean keyword = true;

@@ -21,4 +21,14 @@ public class RAGFlowConfig {
      * API密钥
      */
     private String apiKey;
+
+    /**
+     * embeddings_id
+     */
+    private String embeddingsId;
+
+    /**
+     * rerank_id
+     */
+    private String rerankId;
 } 
