@@ -8,6 +8,5 @@ spring:
       - datasource
       - file
       - server
-      - dify
       - llm
       - security
