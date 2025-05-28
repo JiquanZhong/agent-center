@@ -490,11 +490,17 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String deleteNode(String id) {
+        return deleteNode(id, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String deleteNode(String id, boolean callRAGFlowAPI) {
         // 获取节点信息以获取kdb_id
         KnowledgeTreeNode node = getById(id);
-        if (node == null || node.getKdbId() == null) {
-            log.error("删除失败：找不到知识树节点或其RAGFlow数据集ID为空，节点ID: {}", id);
-            throw new RuntimeException("找不到知识树节点或其RAGFlow数据集ID为空");
+        if (node == null) {
+            log.error("删除失败：找不到知识树节点，节点ID: {}", id);
+            throw new RuntimeException("找不到知识树节点");
         }
 
         // 获取当前节点的父节点ID和文档数量
@@ -504,53 +510,71 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
         // 获取当前节点及其所有子孙节点的ID
         List<String> allNodeIds = getIdsByPid(id);
 
-        // 获取所有节点的kdbId
-        List<KnowledgeTreeNode> allNodes = listByIds(allNodeIds);
-        List<String> allKdbIds = allNodes.stream()
-                .filter(n -> n.getKdbId() != null)
-                .map(KnowledgeTreeNode::getKdbId)
-                .collect(Collectors.toList());
-
-        if (allKdbIds.isEmpty()) {
-            log.error("删除失败：所有知识树节点的RAGFlow数据集ID均为空，节点ID列表: {}", allNodeIds);
-            throw new RuntimeException("所有知识树节点的RAGFlow数据集ID均为空");
-        }
-
-        // 创建RAGFlow数据集删除请求
-        RAGFlowDatasetDeleteReq req = new RAGFlowDatasetDeleteReq();
-        req.setIds(allKdbIds);
-
-        // 调用RAGFlow API删除数据集
-        RAGFlowDatasetDeleteResp resp = ragFlowDBAPIService.deleteDatasets(req);
-
-        // 检查API调用结果
-        if (resp != null && resp.getCode() == 0) {
-            // 从数据库中删除所有记录
-            removeByIds(allNodeIds);
-            log.info("知识树节点及其子节点删除成功，根节点ID: {}, 删除节点总数: {}, RAGFlow数据集ID列表: {}",
-                    id, allNodeIds.size(), allKdbIds);
-
-            // 更新父节点的文档数量
-            if (parentId != null && !parentId.isEmpty() && !parentId.equals("0") && documentNum > 0) {
-                try {
-                    // 减少父节点及其父节点的文档数量
-                    updateNodeAndParentsDocumentNum(parentId, -documentNum);
-                    log.info("已更新父节点[{}]及其父节点的文档数量，减少文档数: {}", parentId, documentNum);
-                } catch (Exception e) {
-                    log.error("更新父节点文档数量失败: {}", e.getMessage(), e);
-                }
+        if (callRAGFlowAPI) {
+            // 需要调用RAGFlow API删除数据集
+            if (node.getKdbId() == null) {
+                log.error("删除失败：知识树节点的RAGFlow数据集ID为空，节点ID: {}", id);
+                throw new RuntimeException("知识树节点的RAGFlow数据集ID为空");
             }
 
-            return node.getId();
+            // 获取所有节点的kdbId
+            List<KnowledgeTreeNode> allNodes = listByIds(allNodeIds);
+            List<String> allKdbIds = allNodes.stream()
+                    .filter(n -> n.getKdbId() != null)
+                    .map(KnowledgeTreeNode::getKdbId)
+                    .collect(Collectors.toList());
+
+            if (allKdbIds.isEmpty()) {
+                log.error("删除失败：所有知识树节点的RAGFlow数据集ID均为空，节点ID列表: {}", allNodeIds);
+                throw new RuntimeException("所有知识树节点的RAGFlow数据集ID均为空");
+            }
+
+            // 创建RAGFlow数据集删除请求
+            RAGFlowDatasetDeleteReq req = new RAGFlowDatasetDeleteReq();
+            req.setIds(allKdbIds);
+
+            // 调用RAGFlow API删除数据集
+            RAGFlowDatasetDeleteResp resp = ragFlowDBAPIService.deleteDatasets(req);
+
+            // 检查API调用结果
+            if (resp == null || resp.getCode() != 0) {
+                log.error("删除RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
+                throw new RuntimeException("删除RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
+            }
+
+            log.info("RAGFlow数据集删除成功，数据集ID列表: {}", allKdbIds);
         } else {
-            log.error("删除RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
-            throw new RuntimeException("删除RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
+            log.info("跳过RAGFlow API调用，仅删除本地数据库记录");
         }
+
+        // 从数据库中删除所有记录
+        removeByIds(allNodeIds);
+        log.info("知识树节点及其子节点删除成功，根节点ID: {}, 删除节点总数: {}, 调用RAGFlow API: {}",
+                id, allNodeIds.size(), callRAGFlowAPI);
+
+        // 更新父节点的文档数量
+        if (parentId != null && !parentId.isEmpty() && !parentId.equals("0") && documentNum > 0) {
+            try {
+                // 减少父节点及其父节点的文档数量
+                updateNodeAndParentsDocumentNum(parentId, -documentNum);
+                log.info("已更新父节点[{}]及其父节点的文档数量，减少文档数: {}", parentId, documentNum);
+            } catch (Exception e) {
+                log.error("更新父节点文档数量失败: {}", e.getMessage(), e);
+            }
+        }
+
+        return node.getId();
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<String> deleteNode(List<String> ids) {
+        return deleteNode(ids, true);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<String> deleteNode(List<String> ids, boolean callRAGFlowAPI) {
         if (ids == null || ids.isEmpty()) {
             log.warn("删除操作传入的ID列表为空");
             return new ArrayList<>();
@@ -576,49 +600,56 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             }
         }
 
-        // 提取所有有效的kdb_id
-        List<String> kdbIds = nodes.stream()
-                .filter(node -> node.getKdbId() != null)
-                .map(KnowledgeTreeNode::getKdbId)
-                .collect(Collectors.toList());
+        if (callRAGFlowAPI) {
+            // 需要调用RAGFlow API删除数据集
+            // 提取所有有效的kdb_id
+            List<String> kdbIds = nodes.stream()
+                    .filter(node -> node.getKdbId() != null)
+                    .map(KnowledgeTreeNode::getKdbId)
+                    .collect(Collectors.toList());
 
-        if (kdbIds.isEmpty()) {
-            log.error("删除失败：所有知识树节点的RAGFlow数据集ID均为空，节点ID列表: {}", ids);
-            throw new RuntimeException("所有知识树节点的RAGFlow数据集ID均为空");
-        }
-
-        // 创建RAGFlow数据集删除请求
-        RAGFlowDatasetDeleteReq req = new RAGFlowDatasetDeleteReq();
-        req.setIds(kdbIds);
-
-        // 调用RAGFlow API删除数据集
-        RAGFlowDatasetDeleteResp resp = ragFlowDBAPIService.deleteDatasets(req);
-
-        // 检查API调用结果
-        if (resp != null && resp.getCode() == 0) {
-            // 从数据库中批量删除记录
-            removeByIds(ids);
-            log.info("批量删除知识树节点成功，节点ID列表: {}, RAGFlow数据集ID列表: {}", ids, kdbIds);
-
-            // 更新所有受影响的父节点的文档数量
-            for (Map.Entry<String, Integer> entry : parentDocumentNumMap.entrySet()) {
-                String parentId = entry.getKey();
-                Integer documentNum = entry.getValue();
-
-                try {
-                    // 减少父节点及其父节点的文档数量
-                    updateNodeAndParentsDocumentNum(parentId, -documentNum);
-                    log.info("已更新父节点[{}]及其父节点的文档数量，减少文档数: {}", parentId, documentNum);
-                } catch (Exception e) {
-                    log.error("更新父节点[{}]文档数量失败: {}", parentId, e.getMessage(), e);
-                }
+            if (kdbIds.isEmpty()) {
+                log.error("删除失败：所有知识树节点的RAGFlow数据集ID均为空，节点ID列表: {}", ids);
+                throw new RuntimeException("所有知识树节点的RAGFlow数据集ID均为空");
             }
 
-            return ids;
+            // 创建RAGFlow数据集删除请求
+            RAGFlowDatasetDeleteReq req = new RAGFlowDatasetDeleteReq();
+            req.setIds(kdbIds);
+
+            // 调用RAGFlow API删除数据集
+            RAGFlowDatasetDeleteResp resp = ragFlowDBAPIService.deleteDatasets(req);
+
+            // 检查API调用结果
+            if (resp == null || resp.getCode() != 0) {
+                log.error("批量删除RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
+                throw new RuntimeException("批量删除RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
+            }
+
+            log.info("RAGFlow数据集批量删除成功，数据集ID列表: {}", kdbIds);
         } else {
-            log.error("批量删除RAGFlow数据集失败: {}", resp != null ? resp.getMessage() : "响应为空");
-            throw new RuntimeException("批量删除RAGFlow数据集失败: " + (resp != null ? resp.getMessage() : "响应为空"));
+            log.info("跳过RAGFlow API调用，仅删除本地数据库记录");
         }
+
+        // 从数据库中批量删除记录
+        removeByIds(ids);
+        log.info("批量删除知识树节点成功，节点ID列表: {}, 调用RAGFlow API: {}", ids, callRAGFlowAPI);
+
+        // 更新所有受影响的父节点的文档数量
+        for (Map.Entry<String, Integer> entry : parentDocumentNumMap.entrySet()) {
+            String parentId = entry.getKey();
+            Integer documentNum = entry.getValue();
+
+            try {
+                // 减少父节点及其父节点的文档数量
+                updateNodeAndParentsDocumentNum(parentId, -documentNum);
+                log.info("已更新父节点[{}]及其父节点的文档数量，减少文档数: {}", parentId, documentNum);
+            } catch (Exception e) {
+                log.error("更新父节点[{}]文档数量失败: {}", parentId, e.getMessage(), e);
+            }
+        }
+
+        return ids;
     }
 
     @Override
@@ -861,6 +892,12 @@ public class KnowledgeTreeNodeServiceImpl extends ServiceImpl<KnowledgeTreeNodeM
             }
 
             Knowledgebase knowledgebase = knowledgebaseService.getById(node.getKdbId());
+
+            if (knowledgebase == null) {
+                log.error("找不到指定ID的知识库, 知识库ID: {}", node.getKdbId());
+                deleteNode(nodeId, false);
+                return null;
+            }
 
             // 获取该节点自身的统计信息
             NodeStatistics ownStats = new NodeStatistics();
