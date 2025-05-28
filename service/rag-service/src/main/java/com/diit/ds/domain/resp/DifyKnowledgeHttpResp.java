@@ -23,7 +23,7 @@ public class DifyKnowledgeHttpResp {
         /**
          * 此次查询中文本块的序列号
          */
-        @JsonProperty("index")
+        @JsonProperty("id")
         private Integer index;
 
         /**

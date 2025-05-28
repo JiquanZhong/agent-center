@@ -6,13 +6,9 @@ import lombok.Data;
 
 import java.util.List;
 
-/**
- * Dify外部知识库API请求类
- * 参考文档：https://docs.dify.ai/zh-hans/guides/knowledge-base/external-knowledge-api-documentation
- */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class DifyKnowledgeHttpReq {
+public class AgentKnowledgeHttpReq {
 
     /**
      * work_flow_run_id
@@ -20,12 +16,8 @@ public class DifyKnowledgeHttpReq {
     @JsonProperty("work_flow_run_id")
     private String workFlowRunId;
 
-    @JsonProperty("select_all")
-    private Boolean selectAll = true;
-
-    @JsonProperty("kdb_ids")
-    private List<String> kdbIds;
-
+    @JsonProperty("app_id")
+    private String appId;
     /**
      * 用户的查询
      */

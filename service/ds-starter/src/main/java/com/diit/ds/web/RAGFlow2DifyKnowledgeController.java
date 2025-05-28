@@ -1,9 +1,11 @@
 package com.diit.ds.web;
 
+import com.diit.ds.domain.req.AgentKnowledgeHttpReq;
 import com.diit.ds.domain.req.DifyKnowledgeHttpReq;
 import com.diit.ds.domain.req.DifyKnowledgeReq;
 import com.diit.ds.domain.resp.DifyKnowledgeHttpResp;
 import com.diit.ds.domain.resp.DifyKnowledgeResp;
+import com.diit.ds.service.AgentKdbService;
 import com.diit.ds.service.DifyKnowledgeService;
 import com.diit.ds.structmapper.DifyKnowledgeRespSM;
 import com.diit.ds.structmapper.KnowledgeTreeNodeSM;
@@ -27,9 +29,13 @@ import java.util.stream.Collectors;
 public class RAGFlow2DifyKnowledgeController {
 
     private final DifyKnowledgeService difyKnowledgeService;
+    private final AgentKdbService agentKdbService;
 
-    public RAGFlow2DifyKnowledgeController(@Qualifier("ragFlow2DifyKnowledgeServiceImpl") DifyKnowledgeService difyKnowledgeService) {
+    public RAGFlow2DifyKnowledgeController(
+            @Qualifier("ragFlow2DifyKnowledgeServiceImpl") DifyKnowledgeService difyKnowledgeService,
+            AgentKdbService agentKdbService) {
         this.difyKnowledgeService = difyKnowledgeService;
+        this.agentKdbService = agentKdbService;
     }
 
     /**
@@ -58,6 +64,19 @@ public class RAGFlow2DifyKnowledgeController {
     public List<DifyKnowledgeHttpResp.SimpleRecord> retrieveKnowledgeSimple(@RequestBody DifyKnowledgeHttpReq req) {
         log.info("接收到知识库检索请求: {}", req);
         DifyKnowledgeHttpResp resp = difyKnowledgeService.retrieveKnowledgeHttp(req);
+        log.info("知识库检索结果数量: {}", resp.getRecords() != null ? resp.getRecords().size() : 0);
+
+        return resp.getRecords();
+    }
+
+    /**
+     * 智能体的知识查询接口
+     */
+    @PostMapping("/retrievalAgent")
+    @Operation(summary = "Dify智能体通过Http调用实现的知识查询接口", description = "需要创建Http调用")
+    public List<DifyKnowledgeHttpResp.SimpleRecord> retrieveKnowledgeAgent(@RequestBody AgentKnowledgeHttpReq req) {
+        log.info("接收到知识库检索请求: {}", req);
+        DifyKnowledgeHttpResp resp = agentKdbService.retrieveKnowledgeHttp(req);
         log.info("知识库检索结果数量: {}", resp.getRecords() != null ? resp.getRecords().size() : 0);
 
         return resp.getRecords();
