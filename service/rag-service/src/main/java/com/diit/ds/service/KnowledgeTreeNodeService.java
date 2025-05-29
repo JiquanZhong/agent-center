@@ -20,23 +20,7 @@ public interface KnowledgeTreeNodeService extends IService<KnowledgeTreeNode> {
 
     String deleteNode(String id);
 
-    /**
-     * 删除节点
-     * @param id 节点ID
-     * @param callRAGFlowAPI 是否调用RAGFlow API删除数据集
-     * @return 删除的节点ID
-     */
-    String deleteNode(String id, boolean callRAGFlowAPI);
-
     List<String> deleteNode(List<String> ids);
-
-    /**
-     * 批量删除节点
-     * @param ids 节点ID列表
-     * @param callRAGFlowAPI 是否调用RAGFlow API删除数据集
-     * @return 删除的节点ID列表
-     */
-    List<String> deleteNode(List<String> ids, boolean callRAGFlowAPI);
 
     KnowledgeTreeNode getNode(String id);
 
