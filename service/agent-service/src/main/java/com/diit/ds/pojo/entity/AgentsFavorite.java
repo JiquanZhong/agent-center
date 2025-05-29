@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * @author yjxbz
  */
@@ -23,4 +25,7 @@ public class AgentsFavorite {
 
     @Schema(description = "智能体id")
     private Integer agentId;
+
+    @Schema(description = "收藏时间")
+    private LocalDateTime createDate;
 }

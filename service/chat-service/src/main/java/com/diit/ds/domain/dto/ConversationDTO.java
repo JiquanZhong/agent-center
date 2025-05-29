@@ -25,6 +25,7 @@ public class ConversationDTO {
     
     /**
      * 应用模型配置ID
+     *
      */
     private String appModelConfigId;
     

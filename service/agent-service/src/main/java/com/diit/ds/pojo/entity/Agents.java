@@ -70,4 +70,7 @@ public class Agents {
 
     @Schema(description = "背景图")
     private String background;
+
+    @Schema(description = "apiKey")
+    private String apiKey;
 }
