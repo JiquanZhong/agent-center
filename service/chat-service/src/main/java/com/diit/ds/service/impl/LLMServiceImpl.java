@@ -28,130 +28,130 @@ public class LLMServiceImpl implements LLMService {
     
 
     @Override
-    public Map<String, Object> processBlockingResponse(Map<String, Object> requestBody) {
+    public Map<String, Object> processBlockingResponse(String agentId, Map<String, Object> requestBody) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.processBlockingResponse(requestBody);
+        return adapter.processBlockingResponse(agentId, requestBody);
     }
 
     @Override
-    public void processStreamingResponse(Map<String, Object> requestBody, SseEmitter emitter) {
+    public void processStreamingResponse(String agentId, Map<String, Object> requestBody, SseEmitter emitter) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        adapter.processStreamingResponse(requestBody, emitter);
+        adapter.processStreamingResponse(agentId, requestBody, emitter);
     }
     
     @Override
-    public Map<String, Object> stopGenerating(String taskId, Map<String, Object> requestBody) {
+    public Map<String, Object> stopGenerating(String agentId, String taskId, Map<String, Object> requestBody) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.stopGenerating(taskId, requestBody);
+        return adapter.stopGenerating(agentId, taskId, requestBody);
     }
     
     @Override
-    public Map<String, Object> submitMessageFeedback(String messageId, Map<String, Object> requestBody) {
+    public Map<String, Object> submitMessageFeedback(String agentId, String messageId, Map<String, Object> requestBody) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.submitMessageFeedback(messageId, requestBody);
+        return adapter.submitMessageFeedback(agentId, messageId, requestBody);
     }
     
     @Override
-    public Map<String, Object> getMessageSuggestions(String messageId, String user) {
+    public Map<String, Object> getMessageSuggestions(String agentId, String messageId, String user) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.getMessageSuggestions(messageId, user);
+        return adapter.getMessageSuggestions(agentId, messageId, user);
     }
     
     @Override
-    public Map<String, Object> getMessages(String user, String conversationId, Integer limit) {
+    public Map<String, Object> getMessages(String agentId, String user, String conversationId, Integer limit) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.getMessages(user, conversationId, limit);
+        return adapter.getMessages(agentId, user, conversationId, limit);
     }
     
     @Override
-    public Map<String, Object> getConversations(String user, String lastId, Integer limit, String keyword) {
+    public Map<String, Object> getConversations(String agentId, String user, String lastId, Integer limit, String keyword) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.getConversations(user, lastId, limit, keyword);
+        return adapter.getConversations(agentId, user, lastId, limit, keyword);
     }
     
     @Override
-    public Map<String, Object> deleteConversation(String conversationId, Map<String, Object> requestBody) {
+    public Map<String, Object> deleteConversation(String agentId, String conversationId, Map<String, Object> requestBody) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.deleteConversation(conversationId, requestBody);
+        return adapter.deleteConversation(agentId, conversationId, requestBody);
     }
     
     @Override
-    public Map<String, Object> renameConversation(String conversationId, Map<String, Object> requestBody) {
+    public Map<String, Object> renameConversation(String agentId, String conversationId, Map<String, Object> requestBody) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.renameConversation(conversationId, requestBody);
+        return adapter.renameConversation(agentId, conversationId, requestBody);
     }
     
     @Override
-    public Map<String, Object> audioToText(MultipartFile audioFile) {
+    public Map<String, Object> audioToText(String agentId, MultipartFile audioFile) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.audioToText(audioFile);
+        return adapter.audioToText(agentId, audioFile);
     }
     
     @Override
-    public byte[] textToAudio(Map<String, Object> requestBody) {
+    public byte[] textToAudio(String agentId, Map<String, Object> requestBody) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.textToAudio(requestBody);
+        return adapter.textToAudio(agentId, requestBody);
     }
     
     @Override
-    public Map<String, Object> getAppInfo() {
+    public Map<String, Object> getAppInfo(String agentId) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.getAppInfo();
+        return adapter.getAppInfo(agentId);
     }
     
     @Override
-    public Map<String, Object> getParameters() {
+    public Map<String, Object> getParameters(String agentId) {
         // 根据配置选择适当的适配器
         LLMAdapter adapter = getAdapter();
         
         // 调用适配器处理请求
-        return adapter.getParameters();
+        return adapter.getParameters(agentId);
     }
     
     @Override
-    public Map<String, Object> getMeta() {
-        return getAdapter().getMeta();
+    public Map<String, Object> getMeta(String agentId) {
+        return getAdapter().getMeta(agentId);
     }
     
     @Override
-    public Map<String, Object> uploadFile(MultipartFile file, String user) {
-        return getAdapter().uploadFile(file, user);
+    public Map<String, Object> uploadFile(String agentId, MultipartFile file, String user) {
+        return getAdapter().uploadFile(agentId, file, user);
     }
     
     /**

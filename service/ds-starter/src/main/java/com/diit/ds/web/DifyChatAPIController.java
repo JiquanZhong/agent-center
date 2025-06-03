@@ -29,7 +29,8 @@ public class DifyChatAPIController {
      */
     @PostMapping("/chat-messages")
     public Object chatMessages(
-            @RequestBody Map<String, Object> requestBody) {
+            @RequestBody Map<String, Object> requestBody,
+            @RequestParam(required = false) String agentId) {
         
         String responseMode = (String) requestBody.getOrDefault("response_mode", "blocking");
 
@@ -38,11 +39,11 @@ public class DifyChatAPIController {
         if ("streaming".equals(responseMode)) {
             // 流式响应模式
             SseEmitter emitter = new SseEmitter(-1L); // 无超时
-            llmService.processStreamingResponse(requestBody, emitter);
+            llmService.processStreamingResponse(agentId, requestBody, emitter);
             return emitter;
         } else {
             // 阻塞响应模式
-            return llmService.processBlockingResponse(requestBody);
+            return llmService.processBlockingResponse(agentId, requestBody);
         }
     }
 
@@ -60,9 +61,10 @@ public class DifyChatAPIController {
     @PostMapping("/chat-messages/{taskId}/stop")
     public Map<String, Object> stopChatMessages(
             @PathVariable String taskId,
-            @RequestBody Map<String, Object> requestBody) {
-        log.info("停止生成响应，taskId: {}", taskId);
-        return llmService.stopGenerating(taskId, requestBody);
+            @RequestBody Map<String, Object> requestBody,
+            @RequestParam(required = false) String agentId) {
+        log.info("停止生成响应，taskId: {}, agentId: {}", taskId, agentId);
+        return llmService.stopGenerating(agentId, taskId, requestBody);
     }
 
     /**
@@ -72,9 +74,10 @@ public class DifyChatAPIController {
     @PostMapping("/messages/{messageId}/feedbacks")
     public Map<String, Object> submitMessageFeedback(
             @PathVariable String messageId,
-            @RequestBody Map<String, Object> requestBody) {
-        log.info("提交消息反馈，messageId: {}, feedback: {}", messageId, requestBody);
-        return llmService.submitMessageFeedback(messageId, requestBody);
+            @RequestBody Map<String, Object> requestBody,
+            @RequestParam(required = false) String agentId) {
+        log.info("提交消息反馈，messageId: {}, feedback: {}, agentId: {}", messageId, requestBody, agentId);
+        return llmService.submitMessageFeedback(agentId, messageId, requestBody);
     }
     
     /**
@@ -84,9 +87,10 @@ public class DifyChatAPIController {
     @GetMapping("/messages/{messageId}/suggested")
     public Map<String, Object> getMessageSuggestions(
             @PathVariable String messageId,
-            @RequestParam String user) {
-        log.info("获取消息建议，messageId: {}, user: {}", messageId, user);
-        return llmService.getMessageSuggestions(messageId, user);
+            @RequestParam String user,
+            @RequestParam(required = false) String agentId) {
+        log.info("获取消息建议，messageId: {}, user: {}, agentId: {}", messageId, user, agentId);
+        return llmService.getMessageSuggestions(agentId, messageId, user);
     }
     
     /**
@@ -97,9 +101,10 @@ public class DifyChatAPIController {
     public Map<String, Object> getMessages(
             @RequestParam(defaultValue = "1") String user,
             @RequestParam(required = false) String conversation_id,
-            @RequestParam(required = false, defaultValue = "20") Integer limit) {
-        log.info("获取消息列表，user: {}, conversation_id: {}, limit: {}", user, conversation_id, limit);
-        return llmService.getMessages(user, conversation_id, limit);
+            @RequestParam(required = false, defaultValue = "20") Integer limit,
+            @RequestParam(required = false) String agentId) {
+        log.info("获取消息列表，user: {}, conversation_id: {}, limit: {}, agentId: {}", user, conversation_id, limit, agentId);
+        return llmService.getMessages(agentId, user, conversation_id, limit);
     }
     
     /**
@@ -111,9 +116,10 @@ public class DifyChatAPIController {
             @RequestParam(defaultValue = "1") String user,
             @RequestParam(required = false) String last_id,
             @RequestParam(required = false, defaultValue = "20") Integer limit,
-            @RequestParam(required = false) String keyWord) {
-        log.info("获取对话列表，user: {}, last_id: {}, limit: {}", user, last_id, limit);
-        return llmService.getConversations(user, last_id, limit, keyWord);
+            @RequestParam(required = false) String keyWord,
+            @RequestParam(required = false) String agentId) {
+        log.info("获取对话列表，user: {}, last_id: {}, limit: {}, agentId: {}", user, last_id, limit, agentId);
+        return llmService.getConversations(agentId, user, last_id, limit, keyWord);
     }
     
     /**
@@ -123,9 +129,10 @@ public class DifyChatAPIController {
     @DeleteMapping("/conversations/{conversationId}")
     public Map<String, Object> deleteConversation(
             @PathVariable String conversationId,
-            @RequestBody Map<String, Object> requestBody) {
-        log.info("删除对话，conversationId: {}, requestBody: {}", conversationId, requestBody);
-        return llmService.deleteConversation(conversationId, requestBody);
+            @RequestBody Map<String, Object> requestBody,
+            @RequestParam(required = false) String agentId) {
+        log.info("删除对话，conversationId: {}, requestBody: {}, agentId: {}", conversationId, requestBody, agentId);
+        return llmService.deleteConversation(agentId, conversationId, requestBody);
     }
     
     /**
@@ -135,9 +142,10 @@ public class DifyChatAPIController {
     @PostMapping("/conversations/{conversationId}/name")
     public Map<String, Object> renameConversation(
             @PathVariable String conversationId,
-            @RequestBody Map<String, Object> requestBody) {
-        log.info("重命名对话，conversationId: {}, requestBody: {}", conversationId, requestBody);
-        return llmService.renameConversation(conversationId, requestBody);
+            @RequestBody Map<String, Object> requestBody,
+            @RequestParam(required = false) String agentId) {
+        log.info("重命名对话，conversationId: {}, requestBody: {}, agentId: {}", conversationId, requestBody, agentId);
+        return llmService.renameConversation(agentId, conversationId, requestBody);
     }
     
     /**
@@ -146,9 +154,10 @@ public class DifyChatAPIController {
      */
     @PostMapping("/audio-to-text")
     public Map<String, Object> audioToText(
-            @RequestParam("file") MultipartFile audioFile) {
-        log.info("语音转文本，文件名: {}, 文件大小: {}", audioFile.getOriginalFilename(), audioFile.getSize());
-        return llmService.audioToText(audioFile);
+            @RequestParam("file") MultipartFile audioFile,
+            @RequestParam(required = false) String agentId) {
+        log.info("语音转文本，文件名: {}, 文件大小: {}, agentId: {}", audioFile.getOriginalFilename(), audioFile.getSize(), agentId);
+        return llmService.audioToText(agentId, audioFile);
     }
     
     /**
@@ -157,9 +166,10 @@ public class DifyChatAPIController {
      */
     @PostMapping("/text-to-audio")
     public ResponseEntity<byte[]> textToAudio(
-            @RequestBody Map<String, Object> requestBody) {
-        log.info("文本转语音，requestBody: {}", requestBody);
-        byte[] audioData = llmService.textToAudio(requestBody);
+            @RequestBody Map<String, Object> requestBody,
+            @RequestParam(required = false) String agentId) {
+        log.info("文本转语音，requestBody: {}, agentId: {}", requestBody, agentId);
+        byte[] audioData = llmService.textToAudio(agentId, requestBody);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("audio/wav"));
@@ -173,27 +183,27 @@ public class DifyChatAPIController {
      * 获取应用基本信息
      */
     @GetMapping("/info")
-    public Map<String, Object> getAppInfo() {
-        log.info("获取应用基本信息");
-        return llmService.getAppInfo();
+    public Map<String, Object> getAppInfo(@RequestParam(required = false) String agentId) {
+        log.info("获取应用基本信息，agentId: {}", agentId);
+        return llmService.getAppInfo(agentId);
     }
     
     /**
      * 获取应用参数信息
      */
     @GetMapping("/parameters")
-    public Map<String, Object> getParameters() {
-        log.info("获取应用参数信息");
-        return llmService.getParameters();
+    public Map<String, Object> getParameters(@RequestParam(required = false) String agentId) {
+        log.info("获取应用参数信息，agentId: {}", agentId);
+        return llmService.getParameters(agentId);
     }
     
     /**
      * 获取应用元数据
      */
     @GetMapping("/meta")
-    public Map<String, Object> getMeta() {
-        log.info("获取应用元数据");
-        return llmService.getMeta();
+    public Map<String, Object> getMeta(@RequestParam(required = false) String agentId) {
+        log.info("获取应用元数据，agentId: {}", agentId);
+        return llmService.getMeta(agentId);
     }
 
     /**
@@ -203,9 +213,10 @@ public class DifyChatAPIController {
     @PostMapping("/files/upload")
     public Map<String, Object> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("user") String user) {
-        log.info("上传文件，文件名: {}, 文件大小: {}, 用户: {}", file.getOriginalFilename(), file.getSize(), user);
-        return llmService.uploadFile(file, user);
+            @RequestParam("user") String user,
+            @RequestParam(required = false) String agentId) {
+        log.info("上传文件，文件名: {}, 文件大小: {}, 用户: {}, agentId: {}", file.getOriginalFilename(), file.getSize(), user, agentId);
+        return llmService.uploadFile(agentId, file, user);
     }
 
 }

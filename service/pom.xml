@@ -22,6 +22,7 @@
         <module>chat-service</module>
         <module>ds-starter</module>
         <module>agent-service</module>
+        <module>ds-domain</module>
     </modules>
 
     <properties>
