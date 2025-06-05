@@ -1,23 +1,19 @@
 package com.diit.ds.web;
 
-import com.diit.ds.domain.req.AgentKnowledgeHttpReq;
-import com.diit.ds.domain.req.DifyKnowledgeHttpReq;
-import com.diit.ds.domain.req.DifyKnowledgeReq;
-import com.diit.ds.domain.resp.DifyKnowledgeHttpResp;
-import com.diit.ds.domain.resp.DifyKnowledgeResp;
-import com.diit.ds.service.AgentKdbService;
-import com.diit.ds.service.DifyKnowledgeService;
-import com.diit.ds.structmapper.DifyKnowledgeRespSM;
-import com.diit.ds.structmapper.KnowledgeTreeNodeSM;
+import com.diit.ds.rag.domain.req.AgentKnowledgeHttpReq;
+import com.diit.ds.rag.domain.req.DifyKnowledgeHttpReq;
+import com.diit.ds.rag.domain.req.DifyKnowledgeReq;
+import com.diit.ds.rag.domain.resp.DifyKnowledgeHttpResp;
+import com.diit.ds.rag.domain.resp.DifyKnowledgeResp;
+import com.diit.ds.rag.service.AgentKdbService;
+import com.diit.ds.rag.service.DifyKnowledgeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Dify外接RAGFlow知识库API控制器

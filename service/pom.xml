@@ -16,12 +16,12 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>common</module>
-        <module>auth-service</module>
-        <module>rag-service</module>
-        <module>chat-service</module>
+        <module>ds-common</module>
+        <module>ds-auth-service</module>
+        <module>ds-rag-service</module>
+        <module>ds-chat-service</module>
         <module>ds-starter</module>
-        <module>agent-service</module>
+        <module>ds-agent-service</module>
         <module>ds-domain</module>
     </modules>
 

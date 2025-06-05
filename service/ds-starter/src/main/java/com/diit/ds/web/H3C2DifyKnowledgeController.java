@@ -1,8 +1,8 @@
 package com.diit.ds.web;
 
-import com.diit.ds.domain.req.DifyKnowledgeReq;
-import com.diit.ds.domain.resp.DifyKnowledgeResp;
-import com.diit.ds.service.DifyKnowledgeService;
+import com.diit.ds.rag.domain.req.DifyKnowledgeReq;
+import com.diit.ds.rag.domain.resp.DifyKnowledgeResp;
+import com.diit.ds.rag.service.DifyKnowledgeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;

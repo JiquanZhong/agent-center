@@ -1,12 +1,12 @@
 package com.diit.ds.web;
 
-import com.diit.ds.domain.dto.KnowledgeTreeNodeDTO;
-import com.diit.ds.domain.dto.KnowledgeTreeStatisticDTO;
-import com.diit.ds.domain.entity.KnowledgeTreeNode;
-import com.diit.ds.domain.req.KnowledgeTreeNodeCreateReq;
-import com.diit.ds.domain.req.KnowledgeTreeNodeUpdateReq;
-import com.diit.ds.service.KnowledgeTreeNodeService;
-import com.diit.ds.structmapper.KnowledgeTreeNodeSM;
+import com.diit.ds.rag.domain.dto.KnowledgeTreeNodeDTO;
+import com.diit.ds.rag.domain.dto.KnowledgeTreeStatisticDTO;
+import com.diit.ds.rag.domain.req.KnowledgeTreeNodeCreateReq;
+import com.diit.ds.rag.domain.req.KnowledgeTreeNodeUpdateReq;
+import com.diit.ds.domain.pojo.entity.KnowledgeTreeNode;
+import com.diit.ds.rag.service.KnowledgeTreeNodeService;
+import com.diit.ds.rag.structmapper.KnowledgeTreeNodeSM;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

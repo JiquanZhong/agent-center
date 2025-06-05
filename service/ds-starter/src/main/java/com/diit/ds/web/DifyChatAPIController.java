@@ -1,7 +1,7 @@
 package com.diit.ds.web;
 
-import com.diit.ds.context.UserContext;
-import com.diit.ds.service.LLMService;
+import com.diit.ds.common.context.UserContext;
+import com.diit.ds.chat.service.LLMService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

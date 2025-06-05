@@ -1,10 +1,10 @@
 package com.diit.ds.web;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.diit.ds.domain.dto.ConversationDTO;
-import com.diit.ds.domain.resp.DifyChatConversationResp;
-import com.diit.ds.service.ConversationService;
-import com.diit.ds.util.DifyAuthUtil;
+import com.diit.ds.rag.domain.resp.DifyChatConversationResp;
+import com.diit.ds.domain.pojo.dto.ConversationDTO;
+import com.diit.ds.chat.service.ConversationService;
+import com.diit.ds.auth.util.DifyAuthUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

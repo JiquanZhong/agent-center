@@ -1,8 +1,9 @@
 package com.diit.ds.web;
 
-import com.diit.ds.domain.resp.FilePreviewResp;
-import com.diit.ds.exception.FileNotFoundException;
-import com.diit.ds.service.KnowledgeFilePreviewService;
+import com.diit.ds.rag.domain.dto.KnowledgeSearchResultDTO;
+import com.diit.ds.rag.domain.resp.FilePreviewResp;
+import com.diit.ds.common.exception.FileNotFoundException;
+import com.diit.ds.rag.service.KnowledgeFilePreviewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -56,7 +57,7 @@ public class KnowledgeFilePreviewController {
             @Parameter(description = "工作流运行ID", required = true)
             @PathVariable String workFlowRunId) {
         try {
-            com.diit.ds.domain.dto.KnowledgeSearchResultDTO resultDTO = 
+            KnowledgeSearchResultDTO resultDTO =
                 knowledgeFilePreviewService.getKnowledgeQueryInfo(workFlowRunId);
             return ResponseEntity.ok(resultDTO);
         } catch (Exception e) {

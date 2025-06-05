@@ -1,9 +1,9 @@
 package com.diit.ds.web;
 
-import com.diit.ds.domain.req.*;
-import com.diit.ds.domain.resp.*;
-import com.diit.ds.exception.FileNotFoundException;
-import com.diit.ds.service.KnowledgeFileService;
+import com.diit.ds.common.exception.FileNotFoundException;
+import com.diit.ds.rag.domain.req.*;
+import com.diit.ds.rag.domain.resp.*;
+import com.diit.ds.rag.service.KnowledgeFileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
