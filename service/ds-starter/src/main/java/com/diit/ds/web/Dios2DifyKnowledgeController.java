@@ -1,5 +1,6 @@
 package com.diit.ds.web;
 
+import com.diit.ds.auth.annotation.NotNeedAuth;
 import com.diit.ds.rag.domain.req.DifyKnowledgeHttpReq;
 import com.diit.ds.rag.domain.req.DifyKnowledgeReq;
 import com.diit.ds.rag.domain.resp.DifyKnowledgeHttpResp;
@@ -39,6 +40,7 @@ public class Dios2DifyKnowledgeController {
      */
     @PostMapping("/retrieval")
     @Operation(summary = "适配Dify外部知识库的接口", description = "直接适配Dify外部知识库的接口")
+    @NotNeedAuth
     public DifyKnowledgeResp retrieveKnowledge(@RequestBody DifyKnowledgeReq req) {
         log.info("接收到知识库检索请求: {}", req);
         DifyKnowledgeResp resp = difyKnowledgeService.retrieveKnowledge(req);
@@ -54,6 +56,7 @@ public class Dios2DifyKnowledgeController {
      */
     @PostMapping("/retrievalSimple")
     @Operation(summary = "通过Http调用实现的知识查询接口", description = "需要创建Http调用")
+    @NotNeedAuth
     public List<DifyKnowledgeHttpResp.SimpleRecord> retrieveKnowledgeSimple(@RequestBody DifyKnowledgeHttpReq req) {
         log.info("接收到知识库检索请求: {}", req);
         DifyKnowledgeHttpResp resp = difyKnowledgeService.retrieveKnowledgeHttp(req);
