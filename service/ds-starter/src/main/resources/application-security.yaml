@@ -18,3 +18,5 @@ diit:
     jwt-secret-key: eyJzdWIiOiJ7XCJsb2dpbk5hbWVcIjpcImFkbWluXCIsXCJ1c2VySWRcIjpcIi0xXCIsXCJ1c2VyTmFtZVwiOlwi6LaF57qn566h55CG5ZGYXCJ9IiwiaWF0IjoxNzQzMTQ0OTUzLCJleHAiOjE3NDU3MzY5NTN9
   sso:
     external-system-validation-url: ${SSO_VALIDATION_URL:http://192.168.164.45:8021/datahub/usercenter/userinfo/validation}
+  ctsso:
+    external-system-validation-url: ${CTSSO_VALIDATION_URL}

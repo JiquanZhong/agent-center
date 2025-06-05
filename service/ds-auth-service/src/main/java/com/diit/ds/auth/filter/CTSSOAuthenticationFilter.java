@@ -1,8 +1,8 @@
 package com.diit.ds.auth.filter;
 
-import com.diit.ds.common.context.UserContext;
 import com.diit.ds.auth.annotation.CTSSOAuthTypeCondition;
-import com.diit.ds.auth.util.SSOUtil;
+import com.diit.ds.auth.util.CTSSOUtil;
+import com.diit.ds.common.context.UserContext;
 import com.github.benmanes.caffeine.cache.Cache;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,14 +23,14 @@ import java.io.IOException;
 @Slf4j
 @Component
 @CTSSOAuthTypeCondition
-public class SSOAuthenticationFilter extends OncePerRequestFilter {
+public class CTSSOAuthenticationFilter extends OncePerRequestFilter {
 
-    private final SSOUtil ssoUtil;
+    private final CTSSOUtil ctssoUtil;
     private final Cache<String, Boolean> tokenCache;
 
-    public SSOAuthenticationFilter(SSOUtil ssoUtil,
-                                   @Qualifier("ssoTokenCache") Cache<String, Boolean> tokenCache) {
-        this.ssoUtil = ssoUtil;
+    public CTSSOAuthenticationFilter(CTSSOUtil ctssoUtil,
+                                     @Qualifier("ssoTokenCache") Cache<String, Boolean> tokenCache) {
+        this.ctssoUtil = ctssoUtil;
         this.tokenCache = tokenCache;
     }
 
@@ -75,7 +75,7 @@ public class SSOAuthenticationFilter extends OncePerRequestFilter {
             }
 
             // 缓存中不存在或已失效，验证token令牌
-            if (!ssoUtil.validateExternalToken(token)) {
+            if (!ctssoUtil.validateExternalToken(token)) {
                 log.warn("无效的令牌: {}", token);
                 response.setStatus(HttpStatus.UNAUTHORIZED.value());
                 response.getWriter().write("无效的令牌");
