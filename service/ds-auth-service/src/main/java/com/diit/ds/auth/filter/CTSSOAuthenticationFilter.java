@@ -1,6 +1,7 @@
 package com.diit.ds.auth.filter;
 
 import com.diit.ds.auth.annotation.CTSSOAuthTypeCondition;
+import com.diit.ds.auth.annotation.NotNeedAuth;
 import com.diit.ds.auth.util.CTSSOUtil;
 import com.diit.ds.common.context.UserContext;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -13,8 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerExecutionChain;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 
 /**
  * SSO认证过滤器
@@ -27,11 +32,15 @@ public class CTSSOAuthenticationFilter extends OncePerRequestFilter {
 
     private final CTSSOUtil ctssoUtil;
     private final Cache<String, Boolean> tokenCache;
+    private final RequestMappingHandlerMapping handlerMapping;
+
 
     public CTSSOAuthenticationFilter(CTSSOUtil ctssoUtil,
-                                     @Qualifier("ssoTokenCache") Cache<String, Boolean> tokenCache) {
+                                     @Qualifier("ssoTokenCache") Cache<String, Boolean> tokenCache,
+                                     @Qualifier("requestMappingHandlerMapping") RequestMappingHandlerMapping handlerMapping) {
         this.ctssoUtil = ctssoUtil;
         this.tokenCache = tokenCache;
+        this.handlerMapping = handlerMapping;
     }
 
     @Value("${diit.security.enabled}")
@@ -117,5 +126,39 @@ public class CTSSOAuthenticationFilter extends OncePerRequestFilter {
         }
 
         return false;
+    }
+
+    /**
+     * 判断是否是不需要认证的接口
+     *
+     * @param request 请求
+     * @return 是否是不需要认证的接口
+     */
+    private boolean isNotNeedAuthEndpoint(HttpServletRequest request) {
+        try {
+            HandlerExecutionChain handlerExecutionChain = handlerMapping.getHandler(request);
+            if (handlerExecutionChain == null) {
+                return false;
+            }
+
+            Object handler = handlerExecutionChain.getHandler();
+            if (!(handler instanceof HandlerMethod)) {
+                return false;
+            }
+
+            HandlerMethod handlerMethod = (HandlerMethod) handler;
+            Method method = handlerMethod.getMethod();
+
+            // 检查方法上是否有NotNeedAuth注解
+            if (method.isAnnotationPresent(NotNeedAuth.class)) {
+                return true;
+            }
+
+            // 检查类上是否有NotNeedAuth注解
+            return handlerMethod.getBeanType().isAnnotationPresent(NotNeedAuth.class);
+        } catch (Exception e) {
+            log.error("检查接口认证要求时发生异常: {}", e.getMessage(), e);
+            return false;
+        }
     }
 } 
