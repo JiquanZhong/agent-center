@@ -7,3 +7,11 @@
 service/log
 preview
 operation/system-server/diit-system/logs
+
+ask-data-service/__pycache__
+ask-data-service/.venv
+ask-data-service/pandasai.log
+ask-data-service/logs
+ask-data-service/export
+**/__pycache__
+ask-data-service/exports

@@ -1,0 +1,21 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pandas==2.1.3
+pandasai>=3.0.0b2
+python-dotenv==1.0.0
+psycopg2-binary==2.9.9
+pydantic
+python-multipart==0.0.6
+matplotlib
+seaborn
+plotly==5.17.0
+kaleido==0.2.1
+geopandas==0.14.1
+fiona==1.9.5
+pandasai-openai
+aiofiles
+psutil
+# 意图识别功能依赖
+elasticsearch>=8.0.0,<9.0.0
+numpy>=1.21.0
+openai>=1.0.0

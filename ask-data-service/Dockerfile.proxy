@@ -1,0 +1,83 @@
+# Ask Data AI - 代理环境构建Dockerfile
+# 适用于有HTTP代理的内网环境
+
+FROM python:3.11-slim
+
+# 设置工作目录
+WORKDIR /app
+
+# 设置环境变量
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV DOCKER_HOST_IP=0.0.0.0
+ENV ASK_DATA_PORT=8000
+ENV PYTHONIOENCODING=UTF-8
+
+# 代理配置（构建时传入）
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+# 设置代理环境变量
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV http_proxy=${HTTP_PROXY}
+ENV https_proxy=${HTTPS_PROXY}
+ENV NO_PROXY=${NO_PROXY}
+ENV no_proxy=${NO_PROXY}
+
+# 配置apt代理（如果提供了代理）
+RUN if [ -n "${HTTP_PROXY}" ]; then \
+        echo "Acquire::http::Proxy \"${HTTP_PROXY}\";" > /etc/apt/apt.conf.d/01proxy && \
+        echo "Acquire::https::Proxy \"${HTTPS_PROXY}\";" >> /etc/apt/apt.conf.d/01proxy; \
+    fi
+
+# 使用内网源或代理下载
+# 如果有内网APT镜像，请取消注释并修改为内网地址
+# RUN sed -i 's/deb.debian.org/your-internal-mirror.com/g' /etc/apt/sources.list.d/debian.sources
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 复制依赖文件
+COPY requirements.txt .
+
+# 配置pip代理和镜像源
+RUN if [ -n "${HTTP_PROXY}" ]; then \
+        pip config set global.proxy "${HTTP_PROXY}"; \
+    fi && \
+    pip config set global.index-url "https://pypi.tuna.tsinghua.edu.cn/simple" && \
+    pip config set global.trusted-host "pypi.tuna.tsinghua.edu.cn"
+
+# 安装Python依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 清理代理配置（避免运行时使用代理）
+RUN rm -f /etc/apt/apt.conf.d/01proxy
+ENV HTTP_PROXY=""
+ENV HTTPS_PROXY=""
+ENV http_proxy=""
+ENV https_proxy=""
+
+# 复制项目文件
+COPY . .
+
+# 创建必要的目录
+RUN mkdir -p uploads exports logs
+
+# 设置权限
+RUN chmod 755 logs
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8000/api/ask-data/system/health || exit 1
+
+# 启动命令
+CMD ["python", "app.py"] 
