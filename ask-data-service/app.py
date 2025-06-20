@@ -15,8 +15,10 @@ from src.api.main import start_server
 
 def main():
     """主函数"""
-    host = os.getenv("DOCKER_HOST_IP", "127.0.0.1")
-    port = int(os.getenv("ASK_DATA_PORT", "8000"))
+    # host = os.getenv("DOCKER_HOST_IP", "127.0.0.1")
+    # port = int(os.getenv("ASK_DATA_PORT", "8000"))
+    host = "0.0.0.0"
+    port = 8000
     reload = os.getenv("RELOAD", "false").lower() == "true"
     
     print("🤖 Ask Data AI - 智能数据问答Web API服务")

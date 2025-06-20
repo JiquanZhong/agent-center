@@ -22,6 +22,24 @@ services:
     networks:
       - microservice-network
 
+  ask-data-service:
+    build:
+      context: ./ask-data-service
+      dockerfile: Dockerfile
+    container_name: ask-data-service
+    ports:
+      - "${ASK_DATA_PORT}:8000"
+    volumes:
+      - ./log/ask-data-service/log:/app/log
+      - ./log/ask-data-service/pandasai.log:/app/pandasai.log
+      - ./volumes/ask-data-service/datasets:/app/datasets
+      - ./volumes/ask-data-service/exports:/app/exports
+    env_file:
+      - ./.env
+    networks:
+      - microservice-network
+    restart: "no"
+
   postgres:
     image: postgres:12
     container_name: diit-postgres

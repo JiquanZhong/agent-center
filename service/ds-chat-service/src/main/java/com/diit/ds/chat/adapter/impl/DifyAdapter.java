@@ -47,6 +47,8 @@ public class DifyAdapter implements LLMAdapter {
     private String difyBaseUrl;
 //    private final AgentsService agentsService;
     private final AgentsMapper agentsMapper;
+    @Value("${dify.api.chat-agent-token}")
+    private String chatAgentToken;
 
     @Override
     public Map<String, Object> processBlockingResponse(String agentId, Map<String, Object> requestBody) {
@@ -603,6 +605,7 @@ public class DifyAdapter implements LLMAdapter {
         // 根据agentId获取对应的API Key
         String apiKey = getApiKeyByAgentId(agentId);
         headers.set("Authorization", "Bearer " + apiKey);
+        log.info("创建请求头Authorization: {}", "Bearer " + apiKey);
 
         return headers;
     }
@@ -618,7 +621,7 @@ public class DifyAdapter implements LLMAdapter {
                 return agent.getApiKey();
             } else {
                 // 如果没有找到对应的API Key，使用默认的
-                log.warn("智能体ID {} 未找到对应的API Key，使用默认配置", agentId);
+                log.warn("智能体ID 【{}】 未找到对应的API Key，使用默认配置", agentId);
                 return difyConfig.getChatAgentToken().replace("Bearer ", "");
             }
         } catch (Exception e) {
