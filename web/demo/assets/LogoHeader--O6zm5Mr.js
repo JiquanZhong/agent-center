@@ -1,0 +1,1 @@
+import{b as t}from"./index-BsLPKckO.js";import{_ as s}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{u as o,a0 as a,a5 as r,a7 as _,e as n}from"./@vue-B5btswkz.js";const c={key:0},m={__name:"LogoHeader",setup(p){const e=t();return(u,i)=>o(e).gjMode?n("",!0):(a(),r("h2",c,_(o(e).logoName.slice(1)),1))}},g=s(m,[["__scopeId","data-v-e5bd1d7b"]]);export{g as _};

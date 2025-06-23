@@ -1,0 +1,1 @@
+import{_ as e}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{a5 as t,a0 as o}from"./@vue-B5btswkz.js";const r={},c={src:"/diit-bpm-vue/system/independence/dictList",style:{width:"100%",height:"100%",overflow:"auto",border:"0px"}};function s(n,i){return o(),t("iframe",c)}const _=e(r,[["render",s]]);export{_ as default};
