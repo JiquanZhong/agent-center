@@ -16,11 +16,18 @@ ENV PYTHONIOENCODING=UTF-8
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
     sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
-# 安装系统依赖
+# 安装系统依赖和中文字体
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    # 中文字体支持
+    fonts-wqy-microhei \
+    fonts-wqy-zenhei \
+    fonts-noto-cjk \
+    fonts-dejavu-core \
+    fontconfig \
+    && fc-cache -f -v \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件

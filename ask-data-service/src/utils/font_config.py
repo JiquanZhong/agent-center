@@ -48,11 +48,12 @@ def configure_chinese_fonts():
             ]
         else:  # Linux
             possible_fonts = [
-                'DejaVu Sans',
                 'WenQuanYi Micro Hei',  # 文泉驿微米黑
                 'WenQuanYi Zen Hei',    # 文泉驿正黑
                 'Noto Sans CJK SC',     # 思源黑体
-                'Source Han Sans SC'    # 思源黑体
+                'Noto Sans CJK',        # Noto CJK通用
+                'Source Han Sans SC',   # 思源黑体
+                'DejaVu Sans'
             ]
         
         # 获取系统所有字体
@@ -67,7 +68,7 @@ def configure_chinese_fonts():
         if not chinese_fonts:
             # 如果没找到预设字体，尝试找包含中文的字体
             for font in system_fonts:
-                if any(keyword in font.lower() for keyword in ['cjk', 'chinese', 'han', 'hei', 'song']):
+                if any(keyword in font.lower() for keyword in ['cjk', 'chinese', 'han', 'hei', 'song', 'wqy', 'wenquanyi', 'noto']):
                     chinese_fonts.append(font)
                     break
         
