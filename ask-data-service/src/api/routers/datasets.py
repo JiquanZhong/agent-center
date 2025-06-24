@@ -22,11 +22,130 @@ from ..dependencies import get_database, get_settings
 from ...utils.schema_database import SchemaDatabase
 from ...config.settings import Settings
 from ...core.data_analyzer import DataAnalyzer
+from ...core.embedding_service import EmbeddingService
+from ...core.vector_search_service import VectorSearchService
+from ...core.intent_engine import IntentRecognitionEngine
 from ...utils.logger import get_logger, LogContext
 from ...utils.geo_converter import GeoConverter  # 导入地理数据转换器
 
 router = APIRouter(prefix="/datasets", tags=["数据集管理"])
 logger = get_logger(__name__)
+
+# 全局变量用于缓存服务实例
+_embedding_service = None
+_vector_service = None
+_intent_engine = None
+
+def get_embedding_service(settings: Settings = Depends(get_settings)) -> EmbeddingService:
+    """获取远程embedding服务实例"""
+    global _embedding_service
+    if _embedding_service is None:
+        logger.info("初始化远程embedding服务")
+        embedding_config = settings.get_embedding_config()
+        _embedding_service = EmbeddingService(
+            api_key=settings.api_key,  # 使用OpenAI API Key作为认证
+            base_url=embedding_config["base_url"],
+            model_name=embedding_config["model"]
+        )
+    return _embedding_service
+
+def get_vector_service(settings: Settings = Depends(get_settings)) -> VectorSearchService:
+    """获取ES向量检索服务实例"""
+    global _vector_service
+    if _vector_service is None:
+        logger.info("初始化ES向量检索服务")
+        # 从设置中获取ES配置
+        es_config = settings.get_elasticsearch_config()
+        _vector_service = VectorSearchService(es_config, settings.elasticsearch_index)
+    return _vector_service
+
+def get_intent_engine(
+    embedding_service: EmbeddingService = Depends(get_embedding_service),
+    vector_service: VectorSearchService = Depends(get_vector_service),
+    db: SchemaDatabase = Depends(get_database)
+) -> IntentRecognitionEngine:
+    """获取意图识别引擎实例"""
+    global _intent_engine
+    if _intent_engine is None:
+        logger.info("初始化意图识别引擎")
+        _intent_engine = IntentRecognitionEngine(
+            embedding_service=embedding_service,
+            vector_service=vector_service,
+            db=db
+        )
+    return _intent_engine
+
+async def sync_dataset_to_es(dataset_id: str, db: SchemaDatabase, 
+                           intent_engine: IntentRecognitionEngine,
+                           operation: str = "index") -> bool:
+    """
+    同步单个数据集到ES
+    
+    Args:
+        dataset_id: 数据集ID
+        db: 数据库服务
+        intent_engine: 意图识别引擎
+        operation: 操作类型 ("index", "update", "delete")
+        
+    Returns:
+        bool: 是否成功
+    """
+    try:
+        if operation == "delete":
+            # 删除ES中的数据集索引
+            success = intent_engine.vector_service.delete_dataset(dataset_id)
+            if success:
+                logger.info(f"✅ 数据集 {dataset_id} 已从ES中删除")
+            else:
+                logger.warning(f"⚠️ 数据集 {dataset_id} ES删除失败")
+            return success
+        
+        # 获取数据集信息
+        dataset = db.get_dataset_by_id(dataset_id)
+        if not dataset:
+            logger.error(f"数据集 {dataset_id} 不存在，无法同步到ES")
+            return False
+        
+        # 获取列信息构建完整的数据集信息
+        columns = db.list_dataset_columns(dataset_id)
+        columns_info = ", ".join([f"{col['name']}({col['type']})" for col in columns])
+        
+        # 构建完整的数据集信息
+        dataset_info = {
+            "name": dataset.get('name', ''),
+            "description": dataset.get('description', ''),
+            "keywords": intent_engine._generate_keywords_from_dataset(dataset, columns),
+            "domain": intent_engine._infer_domain_from_dataset(dataset, columns),
+            "data_summary": intent_engine._generate_data_summary(dataset, columns),
+            "columns_info": columns_info,
+            "tree_node_id": dataset.get('tree_node_id', ''),
+            "file_path": dataset.get('actual_data_path') or dataset.get('file_path', ''),
+            "status": dataset.get('status', 'active'),
+            "created_at": dataset.get('created_at'),
+            "updated_at": dataset.get('updated_at')
+        }
+        
+        # 生成向量
+        embedding = intent_engine.embedding_service.generate_dataset_embedding(dataset_info)
+        
+        # 根据操作类型执行相应的ES操作
+        if operation == "index":
+            success = intent_engine.vector_service.index_dataset(dataset_id, dataset_info, embedding)
+        elif operation == "update":
+            success = intent_engine.vector_service.update_dataset(dataset_id, dataset_info, embedding)
+        else:
+            success = intent_engine.vector_service.index_dataset(dataset_id, dataset_info, embedding)
+        
+        if success:
+            logger.info(f"✅ 数据集 {dataset_id} ({dataset.get('name')}) 已同步到ES ({operation})")
+        else:
+            logger.error(f"❌ 数据集 {dataset_id} 同步到ES失败 ({operation})")
+        
+        return success
+        
+    except Exception as e:
+        logger.error(f"❌ 数据集 {dataset_id} 同步到ES异常: {e}")
+        return False
 
 def sanitize_filename(filename: str) -> str:
     """
@@ -66,7 +185,8 @@ async def upload_dataset(
     description: Optional[str] = Form(None, description="数据集描述"),
     tree_node_id: Optional[str] = Form(None, description="所属节点ID"),
     auto_analyze: bool = Form(True, description="是否自动分析生成语义配置"),
-    db: SchemaDatabase = Depends(get_database)
+    db: SchemaDatabase = Depends(get_database),
+    intent_engine: IntentRecognitionEngine = Depends(get_intent_engine)
 ):
     """
     上传数据文件并创建数据集
@@ -385,6 +505,23 @@ async def upload_dataset(
                     logger.error(f"自动生成语义配置失败: {str(e)}")
                     # 不影响数据集创建，只记录错误
             
+            # 8. 同步数据集到ES向量存储
+            try:
+                logger.info(f"🔄 开始同步数据集 {dataset_id} 到ES")
+                sync_success = await sync_dataset_to_es(
+                    dataset_id=str(dataset_id), 
+                    db=db, 
+                    intent_engine=intent_engine,
+                    operation="index"
+                )
+                if sync_success:
+                    logger.info(f"✅ 数据集 {dataset_id} ES同步成功")
+                else:
+                    logger.warning(f"⚠️ 数据集 {dataset_id} ES同步失败")
+            except Exception as sync_e:
+                logger.error(f"❌ 数据集 {dataset_id} ES同步异常: {sync_e}")
+                # ES同步失败不影响数据集创建
+            
             return StandardResponse(
                 success=True,
                 message="数据集创建成功",
@@ -504,7 +641,8 @@ async def get_dataset(
 async def update_dataset(
     dataset_id: int,
     dataset: DatasetUpdateRequest,
-    db: SchemaDatabase = Depends(get_database)
+    db: SchemaDatabase = Depends(get_database),
+    intent_engine: IntentRecognitionEngine = Depends(get_intent_engine)
 ):
     """更新数据集的信息"""
     try:
@@ -532,6 +670,23 @@ async def update_dataset(
         # 使用现有的update_dataset方法
         success = db.update_dataset(dataset_id, update_data)
         if success:
+            # 同步更新到ES
+            try:
+                logger.info(f"🔄 开始同步更新数据集 {dataset_id} 到ES")
+                sync_success = await sync_dataset_to_es(
+                    dataset_id=str(dataset_id), 
+                    db=db, 
+                    intent_engine=intent_engine,
+                    operation="update"
+                )
+                if sync_success:
+                    logger.info(f"✅ 数据集 {dataset_id} ES更新同步成功")
+                else:
+                    logger.warning(f"⚠️ 数据集 {dataset_id} ES更新同步失败")
+            except Exception as sync_e:
+                logger.error(f"❌ 数据集 {dataset_id} ES更新同步异常: {sync_e}")
+                # ES同步失败不影响数据集更新
+            
             # 获取更新后的数据集信息
             updated_dataset = db.get_dataset_by_id(dataset_id)
             return StandardResponse(
@@ -560,7 +715,8 @@ async def update_dataset(
 async def delete_dataset(
     dataset_id: int,
     delete_file: bool = True,
-    db: SchemaDatabase = Depends(get_database)
+    db: SchemaDatabase = Depends(get_database),
+    intent_engine: IntentRecognitionEngine = Depends(get_intent_engine)
 ):
     """删除数据集"""
     try:
@@ -577,6 +733,23 @@ async def delete_dataset(
         # 使用现有的delete_dataset_by_id方法
         success = db.delete_dataset_by_id(dataset_id)
         if success:
+            # 同步删除ES中的索引
+            try:
+                logger.info(f"🔄 开始从ES中删除数据集 {dataset_id}")
+                sync_success = await sync_dataset_to_es(
+                    dataset_id=str(dataset_id), 
+                    db=db, 
+                    intent_engine=intent_engine,
+                    operation="delete"
+                )
+                if sync_success:
+                    logger.info(f"✅ 数据集 {dataset_id} ES删除同步成功")
+                else:
+                    logger.warning(f"⚠️ 数据集 {dataset_id} ES删除同步失败")
+            except Exception as sync_e:
+                logger.error(f"❌ 数据集 {dataset_id} ES删除同步异常: {sync_e}")
+                # ES同步失败不影响数据集删除
+            
             return StandardResponse(
                 success=True,
                 message="数据集删除成功",
@@ -594,6 +767,71 @@ async def delete_dataset(
         return StandardResponse(
             success=False,
             message="删除数据集失败",
+            error=str(e),
+            timestamp=datetime.utcnow().isoformat()
+        )
+
+@router.post("/sync-to-es", response_model=StandardResponse, summary="手动同步数据集到ES")
+async def sync_datasets_to_es(
+    force_refresh: bool = False,
+    dataset_ids: Optional[List[int]] = None,
+    db: SchemaDatabase = Depends(get_database),
+    intent_engine: IntentRecognitionEngine = Depends(get_intent_engine)
+):
+    """
+    手动同步数据集到ES向量存储
+    
+    Args:
+        force_refresh: 是否强制刷新所有数据
+        dataset_ids: 指定要同步的数据集ID列表，如果为空则同步所有数据集
+    """
+    try:
+        with LogContext(logger, "手动同步数据集到ES"):
+            # 如果指定了特定的数据集ID，则只同步这些数据集
+            if dataset_ids:
+                success_count = 0
+                failed_count = 0
+                errors = []
+                
+                for dataset_id in dataset_ids:
+                    try:
+                        sync_success = await sync_dataset_to_es(
+                            dataset_id=str(dataset_id), 
+                            db=db, 
+                            intent_engine=intent_engine,
+                            operation="index"
+                        )
+                        if sync_success:
+                            success_count += 1
+                        else:
+                            failed_count += 1
+                            errors.append(f"数据集 {dataset_id} 同步失败")
+                    except Exception as e:
+                        failed_count += 1
+                        errors.append(f"数据集 {dataset_id} 同步异常: {str(e)}")
+                
+                sync_result = {
+                    "total_count": len(dataset_ids),
+                    "success_count": success_count,
+                    "failed_count": failed_count,
+                    "errors": errors
+                }
+            else:
+                # 使用意图引擎的批量同步功能
+                sync_result = intent_engine.sync_datasets_to_vector_store(force_refresh)
+            
+            return StandardResponse(
+                success=True,
+                message=f"数据集ES同步完成: 成功{sync_result['success_count']}个, 失败{sync_result['failed_count']}个",
+                data=sync_result,
+                timestamp=datetime.utcnow().isoformat()
+            )
+            
+    except Exception as e:
+        logger.error(f"数据集ES同步失败: {e}")
+        return StandardResponse(
+            success=False,
+            message=f"数据集ES同步失败: {str(e)}",
             error=str(e),
             timestamp=datetime.utcnow().isoformat()
         ) 

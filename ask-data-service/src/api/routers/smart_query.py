@@ -192,7 +192,7 @@ async def smart_query(
                 best_match = matched_datasets[0]
                 
                 # 检查最佳匹配的分数是否足够高
-                if best_match.match_score >= 0.5:
+                if best_match.match_score >= 0:
                     try:
                         logger.info(f"🎯 自动执行查询 - 数据集: {best_match.dataset_name} (ID: {best_match.dataset_id})")
                         
