@@ -1,0 +1,106 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Ask Data Service 项目规则
+
+## 项目概述
+这是一个基于AI的智能数据查询微服务，提供自然语言数据查询、数据分析和可视化功能。
+
+## 项目架构
+
+### 入口文件
+- [app.py](mdc:app.py) - Flask应用主入口，启动Web服务器
+- [requirements.txt](mdc:requirements.txt) - Python依赖管理
+- [Dockerfile](mdc:Dockerfile) - Docker容器化配置
+
+### 核心源码结构
+
+#### API层 (`src/api/`)
+- [src/api/main.py](mdc:src/api/main.py) - API应用初始化和配置
+- [src/api/models.py](mdc:src/api/models.py) - Pydantic数据模型定义
+- [src/api/dependencies.py](mdc:src/api/dependencies.py) - 依赖注入和共享组件
+- [src/api/response_utils.py](mdc:src/api/response_utils.py) - 响应格式化工具
+
+#### API路由 (`src/api/routers/`)
+- [src/api/routers/query.py](mdc:src/api/routers/query.py) - 数据查询接口
+- [src/api/routers/smart_query.py](mdc:src/api/routers/smart_query.py) - 智能查询(AI驱动)
+- [src/api/routers/datasets.py](mdc:src/api/routers/datasets.py) - 数据集管理
+- [src/api/routers/columns.py](mdc:src/api/routers/columns.py) - 列信息查询
+- [src/api/routers/transformations.py](mdc:src/api/routers/transformations.py) - 数据转换
+- [src/api/routers/tree_nodes.py](mdc:src/api/routers/tree_nodes.py) - 树形结构数据
+- [src/api/routers/system.py](mdc:src/api/routers/system.py) - 系统管理接口
+
+#### 核心业务层 (`src/core/`)
+- [src/core/query_engine.py](mdc:src/core/query_engine.py) - 查询引擎，处理数据查询逻辑
+- [src/core/intent_engine.py](mdc:src/core/intent_engine.py) - 意图识别引擎，解析用户查询意图
+- [src/core/llm_adapter.py](mdc:src/core/llm_adapter.py) - 大语言模型适配器
+- [src/core/embedding_service.py](mdc:src/core/embedding_service.py) - 向量嵌入服务
+- [src/core/vector_search_service.py](mdc:src/core/vector_search_service.py) - 向量搜索服务
+- [src/core/data_analyzer.py](mdc:src/core/data_analyzer.py) - 数据分析器
+
+#### 工具层 (`src/utils/`)
+- [src/utils/schema_database.py](mdc:src/utils/schema_database.py) - 数据库模式管理
+- [src/utils/transformations_helper.py](mdc:src/utils/transformations_helper.py) - 数据转换助手
+- [src/utils/transformation_rules.py](mdc:src/utils/transformation_rules.py) - 转换规则定义
+- [src/utils/geo_converter.py](mdc:src/utils/geo_converter.py) - 地理坐标转换
+- [src/utils/chart_patch.py](mdc:src/utils/chart_patch.py) - 图表补丁
+- [src/utils/font_config.py](mdc:src/utils/font_config.py) - 字体配置
+- [src/utils/logger.py](mdc:src/utils/logger.py) - 日志工具
+- [src/utils/string_response_patch.py](mdc:src/utils/string_response_patch.py) - 字符串响应补丁
+
+#### 配置管理 (`src/config/`)
+- [src/config/settings.py](mdc:src/config/settings.py) - 应用设置和环境配置
+- [src/config/font_config.py](mdc:src/config/font_config.py) - 字体配置管理
+
+### 数据和脚本
+- `data/` - 数据文件存储目录，包含CSV、Excel等格式数据
+- [scripts/generate_xzqdm_sql.py](mdc:scripts/generate_xzqdm_sql.py) - 行政区划代码SQL生成脚本
+- [transformation_rules.json](mdc:transformation_rules.json) - 数据转换规则配置
+
+## 开发约定
+
+### 代码组织原则
+1. **分层架构**: API层 → 核心业务层 → 工具层
+2. **职责分离**: 路由处理、业务逻辑、数据访问分离
+3. **依赖注入**: 使用[src/api/dependencies.py](mdc:src/api/dependencies.py)管理共享组件
+
+### 新功能开发流程
+1. **API接口**: 在`src/api/routers/`下创建对应路由文件
+2. **业务逻辑**: 在`src/core/`下实现核心业务逻辑
+3. **数据模型**: 在[src/api/models.py](mdc:src/api/models.py)中定义请求/响应模型
+4. **工具函数**: 在`src/utils/`下添加通用工具
+
+### AI/LLM功能集成
+- 使用[src/core/llm_adapter.py](mdc:src/core/llm_adapter.py)进行大模型调用
+- 通过[src/core/intent_engine.py](mdc:src/core/intent_engine.py)进行意图识别
+- 利用[src/core/embedding_service.py](mdc:src/core/embedding_service.py)进行向量化处理
+
+### 数据处理规范
+- 地理数据处理使用[src/utils/geo_converter.py](mdc:src/utils/geo_converter.py)
+- 数据转换遵循[transformation_rules.json](mdc:transformation_rules.json)配置
+- 数据库操作通过[src/utils/schema_database.py](mdc:src/utils/schema_database.py)进行
+
+### 部署和运维
+- 使用[Dockerfile](mdc:Dockerfile)进行容器化部署
+- 日志记录使用[src/utils/logger.py](mdc:src/utils/logger.py)统一管理
+- 配置管理通过[src/config/settings.py](mdc:src/config/settings.py)集中处理
+
+## 常见开发任务
+
+### 添加新的查询类型
+1. 在[src/api/routers/query.py](mdc:src/api/routers/query.py)或[src/api/routers/smart_query.py](mdc:src/api/routers/smart_query.py)添加路由
+2. 在[src/core/query_engine.py](mdc:src/core/query_engine.py)实现查询逻辑
+3. 更新[src/api/models.py](mdc:src/api/models.py)中的数据模型
+
+### 集成新的AI功能
+1. 扩展[src/core/llm_adapter.py](mdc:src/core/llm_adapter.py)支持新模型
+2. 在[src/core/intent_engine.py](mdc:src/core/intent_engine.py)添加意图识别逻辑
+3. 通过[src/core/embedding_service.py](mdc:src/core/embedding_service.py)处理向量化需求
+
+### 添加数据转换规则
+1. 在[transformation_rules.json](mdc:transformation_rules.json)中配置规则
+2. 在[src/utils/transformation_rules.py](mdc:src/utils/transformation_rules.py)实现转换逻辑
+3. 通过[src/utils/transformations_helper.py](mdc:src/utils/transformations_helper.py)调用
+

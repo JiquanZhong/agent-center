@@ -1,0 +1,109 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 项目约定规范
+
+## 核心约定
+
+### 1. 控制器统一管理
+- **所有Controller类必须放在ds-starter模块的web包下**
+- 路径：`service/ds-starter/src/main/java/com/diit/ds/web/`
+- 不允许在其他模块中创建Controller类
+- 控制器命名：以`Controller`结尾，如`AgentController`、`UserController`
+
+### 2. 依赖管理策略
+- **版本管理位置**: 根POM文件 [service/pom.xml](mdc:service/pom.xml)
+- **依赖声明位置**: ds-common模块的pom.xml
+- **其他模块**: 通过依赖ds-common模块自动获得所有依赖
+
+### 3. 测试策略
+- **不编写单元测试**
+- 专注于功能实现和代码质量
+- 通过代码审查保证质量
+
+## 模块职责划分
+
+### ds-starter模块
+- **职责**: 应用启动和Web层
+- **包含**: 
+  - 主启动类
+  - 所有Controller类
+  - Web相关配置
+
+### ds-common模块  
+- **职责**: 公共组件和依赖管理
+- **包含**:
+  - 公共工具类
+  - 统一异常处理
+  - 所有项目依赖声明
+
+### ds-domain模块
+- **职责**: 数据访问层
+- **包含**:
+  - 实体类(POJO)
+  - Mapper接口
+  - MyBatis XML文件
+
+### 业务模块(ds-auth/ds-rag/ds-chat/ds-agent)
+- **职责**: 具体业务逻辑
+- **包含**:
+  - Service接口和实现
+  - 业务配置
+  - 领域对象(DTO/VO)
+
+## 开发流程
+
+### 1. 新增API接口
+1. 在对应业务模块创建Service
+2. **在ds-starter的web包中创建Controller**
+3. 注入对应的Service进行调用
+4. **使用Spring原生ResponseEntity作为返回类型**
+
+### 2. 新增依赖
+1. 在 [service/pom.xml](mdc:service/pom.xml) 的properties中定义版本
+2. 在dependencyManagement中添加依赖管理  
+3. 在ds-common/pom.xml中声明具体依赖
+
+### 3. 新增业务模块
+1. 在service目录下创建新模块
+2. 在根POM的modules中注册
+3. 新模块依赖ds-common获得基础能力
+4. Controller仍然放在ds-starter的web包中
+
+## 文件路径约定
+
+### Controller文件路径
+```
+service/ds-starter/src/main/java/com/diit/ds/web/
+├── AgentController.java
+├── AuthController.java  
+├── ChatController.java
+├── RagController.java
+└── ...
+```
+
+### Service文件路径
+```
+service/ds-{module}-service/src/main/java/com/diit/ds/{module}/service/
+├── {Module}Service.java
+└── impl/
+    └── {Module}ServiceImpl.java
+```
+
+### 依赖管理文件
+- **版本定义**: [service/pom.xml](mdc:service/pom.xml) `<properties>`和`<dependencyManagement>`
+- **依赖声明**: `service/ds-common/pom.xml` `<dependencies>`
+
+## 注意事项
+
+1. **严格遵守控制器位置约定** - 所有Controller必须在ds-starter/web包下
+2. **使用Spring原生ResponseEntity** - 统一使用ResponseEntity作为REST接口返回类型
+3. **依赖版本统一管理** - 避免版本冲突和不一致
+4. **模块职责清晰** - 每个模块有明确的职责边界
+5. **简化开发流程** - 不编写单元测试，专注业务实现
+6. **代码组织规范** - 按照约定的包结构组织代码
+
+
+

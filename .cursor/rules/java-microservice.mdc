@@ -1,0 +1,120 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Java微服务项目开发指南
+
+## 项目概述
+这是一个基于Spring Boot 3.3.4的企业级微服务项目，主要用于数据智能服务(DS - Data Service)。
+
+## 技术栈
+- **Java版本**: 17
+- **Spring Boot**: 3.3.4
+- **构建工具**: Maven
+- **数据库**: PostgreSQL + MySQL
+- **ORM框架**: MyBatis Plus 3.5.10
+- **认证**: JWT (JJWT 0.11.5)
+- **API文档**: Knife4j (OpenAPI 3)
+- **对象映射**: MapStruct 1.5.0
+- **工具库**: Hutool 5.8.35
+- **缓存**: Caffeine 3.1.8
+
+## 项目结构
+
+### 核心模块
+主项目POM文件位于 [service/pom.xml](mdc:service/pom.xml)，它是一个多模块Maven项目。
+
+#### 模块说明：
+- **ds-starter**: 启动模块，包含主启动类 [DiitMicroserviceDSApplication.java](mdc:service/ds-starter/src/main/java/com/diit/ds/DiitMicroserviceDSApplication.java)
+- **ds-common**: 公共模块，包含通用配置、工具类和异常处理
+- **ds-domain**: 领域模块，包含实体类(POJO)和数据访问层(Mapper)
+- **ds-auth-service**: 认证服务模块，处理用户认证和授权
+- **ds-rag-service**: RAG(检索增强生成)服务模块
+- **ds-chat-service**: 聊天服务模块
+- **ds-mcp-service**: mcp服务模块
+- **ds-agent-service**: 智能代理服务模块
+
+### 包结构规范
+```
+com.diit.ds
+├── common/          # 公共组件(依赖在ds-common/pom.xml中管理)
+│   ├── config/      # 公共配置
+│   ├── util/        # 工具类
+│   └── exception/   # 异常定义
+├── domain/          # 领域层
+│   ├── pojo/        # 实体类
+│   └── mapper/      # 数据访问层
+├── auth/            # 认证模块
+├── rag/             # RAG服务
+├── chat/            # 聊天服务
+└── web/             # Web控制器层(统一在ds-starter模块中)
+```
+
+## 数据源配置
+项目使用多数据源配置，配置文件位于 [application-datasource.yaml](mdc:service/ds-starter/src/main/resources/application-datasource.yaml)：
+- **primary**: 主数据源(PostgreSQL)
+- **dify**: Dify数据源(PostgreSQL)  
+- **ragflow**: RAGFlow数据源(MySQL)
+
+## 开发规范
+
+### 1. 依赖管理
+- 所有依赖版本在根POM [service/pom.xml](mdc:service/pom.xml) 中统一管理
+- 具体依赖在ds-common模块的pom.xml中声明
+- 子模块只声明groupId和artifactId，版本继承父模块
+- 使用dependencyManagement确保版本一致性
+
+### 2. 代码规范
+- 使用Lombok减少样板代码
+- 使用MapStruct进行对象映射
+- 实体类放在domain模块的pojo包下
+- Mapper接口放在domain模块的mapper包下
+
+### 3. API开发
+- **所有控制器类统一放在ds-starter模块的web包下**
+- 使用Knife4j进行API文档管理
+- RESTful API设计原则
+- 不需要编写单元测试
+
+### 4. 数据访问
+- 使用MyBatis Plus简化数据访问
+- 支持多数据源动态切换
+- Mapper XML文件放在resources/com.diit.ds.domain.mapper/下
+
+### 5. 认证授权
+- 使用JWT进行身份认证
+- 自定义注解进行权限控制
+- 过滤器处理请求拦截
+
+## 构建和部署
+- 使用Maven进行项目构建
+- Spring Boot Maven Plugin打包可执行JAR
+- 支持Docker容器化部署
+
+## 常用命令
+```bash
+# 编译项目
+mvn clean compile
+
+# 运行测试
+mvn test
+
+# 打包
+mvn clean package
+
+# 启动应用
+java -jar ds-starter/target/ds-starter-1.0.jar
+```
+
+## 注意事项
+1. 确保Java 17环境
+2. 配置正确的数据库连接信息
+3. 注意多数据源的使用场景
+4. 遵循微服务架构最佳实践
+5. 保持代码整洁和注释完整
+
+
+
+
+

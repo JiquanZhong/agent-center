@@ -1,0 +1,326 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 开发最佳实践
+
+## 编码规范
+
+### 1. 类命名规范
+- **Controller**: 以`Controller`结尾，如`AgentController`
+- **Service**: 以`Service`结尾，如`AuthService`
+- **Mapper**: 以`Mapper`结尾，如`AgentMapper`
+- **Entity/POJO**: 业务实体名称，如`Agent`, `User`
+- **DTO**: 以`DTO`结尾，如`AgentDTO`
+- **VO**: 以`VO`结尾，如`AgentVO`
+
+### 2. 包结构约定
+```
+src/main/java/com/diit/ds/
+├── {module}/            # 各业务模块
+│   ├── config/          # 配置类
+│   ├── service/         # 服务层
+│   │   └── impl/        # 服务实现
+│   ├── domain/          # 领域模型
+│   │   ├── entity/      # 实体类
+│   │   ├── dto/         # 数据传输对象
+│   │   └── vo/          # 视图对象
+│   ├── mapper/          # 数据访问层
+│   └── util/            # 工具类
+└── web/                 # 统一在ds-starter模块中
+    └── controller/      # 所有控制器类
+```
+
+### 3. 注解使用规范
+
+#### MyBatis Plus相关
+```java
+// 实体类注解
+@TableName("table_name")
+@Data
+@EqualsAndHashCode(callSuper = false)
+public class Entity {
+    @TableId(type = IdType.AUTO)
+    private Long id;
+}
+
+// Mapper接口
+@Mapper
+public interface EntityMapper extends BaseMapper<Entity> {
+    // 自定义SQL方法
+}
+```
+
+#### Spring相关
+```java
+// 控制器
+@RestController
+@RequestMapping("/api/v1/entities")
+@Api(tags = "实体管理")
+public class EntityController {
+    
+    @Autowired
+    private EntityService entityService;
+}
+
+// 服务层
+@Service
+@Transactional
+public class EntityServiceImpl implements EntityService {
+    // 实现逻辑
+}
+```
+
+### 4. 数据源切换
+使用`@DS`注解进行数据源切换：
+```java
+@Service
+public class MultiDataSourceService {
+    
+    @DS("primary")
+    public void primaryOperation() {
+        // 使用主数据源
+    }
+    
+    @DS("dify")
+    public void difyOperation() {
+        // 使用Dify数据源
+    }
+    
+    @DS("ragflow")
+    public void ragflowOperation() {
+        // 使用RAGFlow数据源
+    }
+}
+```
+
+## API设计规范
+
+### 1. RESTful API约定
+- GET `/api/v1/entities` - 获取实体列表
+- GET `/api/v1/entities/{id}` - 获取单个实体
+- POST `/api/v1/entities` - 创建实体
+- PUT `/api/v1/entities/{id}` - 更新实体
+- DELETE `/api/v1/entities/{id}` - 删除实体
+
+### 2. 统一响应格式
+使用Spring原生的ResponseEntity：
+```java
+// 成功响应
+@GetMapping("/{id}")
+public ResponseEntity<UserVO> getUser(@PathVariable Long id) {
+    UserVO user = userService.getById(id);
+    return ResponseEntity.ok(user);
+}
+
+// 创建成功响应
+@PostMapping
+public ResponseEntity<UserVO> createUser(@RequestBody UserDTO userDTO) {
+    UserVO user = userService.create(userDTO);
+    return ResponseEntity.status(HttpStatus.CREATED).body(user);
+}
+
+// 无内容响应
+@DeleteMapping("/{id}")
+public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    userService.deleteById(id);
+    return ResponseEntity.noContent().build();
+}
+
+// 错误响应（在异常处理器中）
+@ExceptionHandler(BusinessException.class)
+public ResponseEntity<String> handleBusinessException(BusinessException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+}
+```
+
+### 3. Knife4j文档注解
+```java
+@Api(tags = "用户管理")
+@RestController
+@RequestMapping("/api/v1/users")
+public class UserController {
+    
+    @ApiOperation("获取用户信息")
+    @ApiImplicitParam(name = "id", value = "用户ID", required = true)
+    @GetMapping("/{id}")
+    public ResponseEntity<UserVO> getUser(@PathVariable Long id) {
+        UserVO user = userService.getById(id);
+        return ResponseEntity.ok(user);
+    }
+    
+    @ApiOperation("创建用户")
+    @PostMapping
+    public ResponseEntity<UserVO> createUser(@RequestBody @Valid UserDTO userDTO) {
+        UserVO user = userService.create(userDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
+}
+```
+
+## 异常处理
+
+### 1. 自定义异常
+```java
+public class BusinessException extends RuntimeException {
+    private Integer code;
+    private String message;
+    
+    // 构造函数和getter/setter
+}
+```
+
+### 2. 全局异常处理
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<String> handleBusinessException(BusinessException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+    
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleGeneralException(Exception e) {
+        log.error("未处理的异常", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("服务器内部错误");
+    }
+}
+```
+
+## 配置管理
+
+### 1. 配置文件命名
+- `application.yml` - 主配置文件
+- `application-{profile}.yml` - 环境特定配置
+- `application-datasource.yaml` - 数据源配置
+- `application-knife4j.yaml` - API文档配置
+
+### 2. 配置类
+```java
+@Configuration
+@ConfigurationProperties(prefix = "app.custom")
+@Data
+public class CustomConfig {
+    private String property1;
+    private Integer property2;
+}
+```
+
+## 依赖管理规范
+
+### 1. 依赖声明位置
+- **版本管理**: 在根POM [service/pom.xml](mdc:service/pom.xml) 的 `<dependencyManagement>` 中统一管理所有依赖版本
+- **依赖声明**: 在 `ds-common` 模块的 pom.xml 中声明具体依赖
+- **其他模块**: 只需要引用 ds-common 模块，自动继承所有依赖
+
+### 2. 添加新依赖流程
+1. 在 [service/pom.xml](mdc:service/pom.xml) 的 `<properties>` 中定义版本变量
+2. 在 `<dependencyManagement>` 中添加依赖管理
+3. 在 ds-common/pom.xml 中添加具体依赖（不指定版本）
+
+### 3. 示例
+```xml
+<!-- service/pom.xml - 版本管理 -->
+<properties>
+    <new-dependency.version>1.0.0</new-dependency.version>
+</properties>
+
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.example</groupId>
+            <artifactId>new-dependency</artifactId>
+            <version>${new-dependency.version}</version>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
+<!-- ds-common/pom.xml - 依赖声明 -->
+<dependency>
+    <groupId>com.example</groupId>
+    <artifactId>new-dependency</artifactId>
+</dependency>
+```
+
+## 日志规范
+
+### 1. 日志级别使用
+- ERROR: 错误信息，需要立即处理
+- WARN: 警告信息，可能的问题
+- INFO: 关键业务信息
+- DEBUG: 调试信息，开发阶段使用
+
+### 2. 日志格式
+```java
+@Slf4j
+@Service
+public class ServiceImpl {
+    
+    public void businessMethod(Long id) {
+        log.info("开始处理业务逻辑，参数: {}", id);
+        try {
+            // 业务逻辑
+            log.info("业务逻辑处理成功，ID: {}", id);
+        } catch (Exception e) {
+            log.error("业务逻辑处理失败，ID: {}, 错误: {}", id, e.getMessage(), e);
+            throw new BusinessException("处理失败");
+        }
+    }
+}
+```
+
+## 性能优化
+
+### 1. MyBatis Plus优化
+- 使用分页插件：`IPage<Entity> page = new Page<>(current, size)`
+- 条件构造器：`QueryWrapper<Entity> wrapper = new QueryWrapper<>()`
+- 批量操作：`saveBatch()`, `updateBatchById()`
+
+### 2. 缓存使用
+```java
+@Cacheable(value = "entities", key = "#id")
+public Entity getById(Long id) {
+    return mapper.selectById(id);
+}
+
+@CacheEvict(value = "entities", key = "#entity.id")
+public void update(Entity entity) {
+    mapper.updateById(entity);
+}
+```
+
+## 安全规范
+
+### 1. JWT认证
+```java
+@PreAuthorize("hasRole('ADMIN')")
+@GetMapping("/admin-only")
+public ResponseEntity<String> adminOnly() {
+    return ResponseEntity.ok("管理员专用");
+}
+```
+
+### 2. 输入验证
+```java
+@PostMapping
+public ResponseEntity<Entity> create(@Valid @RequestBody EntityDTO dto) {
+    Entity entity = entityService.create(dto);
+    return ResponseEntity.status(HttpStatus.CREATED).body(entity);
+}
+```
+
+
+
+
+
+
+
+
+
