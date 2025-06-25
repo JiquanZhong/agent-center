@@ -15,6 +15,11 @@ class DatasetStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
 
+class ColumnCategory(str, Enum):
+    """列类型枚举"""
+    METRIC = "metric"      # 指标
+    DIMENSION = "dimension"  # 维度
+
 # ====================== 标准响应模型 ======================
 
 class StandardResponse(BaseModel):
@@ -174,6 +179,8 @@ class ColumnConfigCreateRequest(BaseModel):
     sort_order: Optional[int] = Field(0, description="排序顺序")
     is_required: Optional[bool] = Field(False, description="是否必填")
     default_value: Optional[str] = Field(None, description="默认值")
+    column_category: Optional[ColumnCategory] = Field(ColumnCategory.METRIC, description="列类型（metric：指标，dimension：维度）")
+    dictionary_id: Optional[str] = Field(None, description="字典ID")
 
 class ColumnConfigUpdateRequest(BaseModel):
     """列配置更新请求模型"""
@@ -184,6 +191,8 @@ class ColumnConfigUpdateRequest(BaseModel):
     sort_order: Optional[int] = Field(None, description="排序顺序")
     is_required: Optional[bool] = Field(None, description="是否必填")
     default_value: Optional[str] = Field(None, description="默认值")
+    column_category: Optional[ColumnCategory] = Field(None, description="列类型（metric：指标，dimension：维度）")
+    dictionary_id: Optional[str] = Field(None, description="字典ID")
 
 class ColumnConfig(BaseModel):
     """列配置模型"""
@@ -196,6 +205,8 @@ class ColumnConfig(BaseModel):
     sort_order: Optional[int] = Field(0, description="排序顺序")
     is_required: Optional[bool] = Field(False, description="是否必填")
     default_value: Optional[str] = Field(None, description="默认值")
+    column_category: Optional[ColumnCategory] = Field(ColumnCategory.METRIC, description="列类型（metric：指标，dimension：维度）")
+    dictionary_id: Optional[str] = Field(None, description="字典ID")
     created_at: Optional[str] = Field(None, description="创建时间")
     updated_at: Optional[str] = Field(None, description="更新时间")
 

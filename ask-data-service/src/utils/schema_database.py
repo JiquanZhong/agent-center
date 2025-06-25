@@ -144,6 +144,8 @@ class SchemaDatabase:
                     sort_order INTEGER DEFAULT 0,
                     is_required BOOLEAN DEFAULT FALSE,
                     default_value VARCHAR(255),
+                    column_category VARCHAR(20) DEFAULT 'metric' CHECK (column_category IN ('metric', 'dimension')),
+                    dictionary_id VARCHAR(100),
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     
@@ -194,6 +196,9 @@ class SchemaDatabase:
                 for index in indexes:
                     cursor.execute(index)
                 
+                # 添加新字段到现有表（如果不存在）
+                self._add_missing_columns(cursor)
+                
                 conn.commit()
                 self.logger.info("✅ PostgreSQL数据库表结构检查完成（仅创建不存在的表）")
                 
@@ -204,6 +209,44 @@ class SchemaDatabase:
         finally:
             cursor.close()
             conn.close()
+    
+    def _add_missing_columns(self, cursor):
+        """添加缺失的列字段到现有表"""
+        try:
+            # 检查并添加 column_category 字段
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'ask_data_dataset_columns' 
+                AND column_name = 'column_category'
+            """)
+            
+            if not cursor.fetchone():
+                cursor.execute("""
+                    ALTER TABLE ask_data_dataset_columns 
+                    ADD COLUMN column_category VARCHAR(20) DEFAULT 'metric' 
+                    CHECK (column_category IN ('metric', 'dimension'))
+                """)
+                self.logger.info("✅ 已添加 column_category 字段")
+            
+            # 检查并添加 dictionary_id 字段
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'ask_data_dataset_columns' 
+                AND column_name = 'dictionary_id'
+            """)
+            
+            if not cursor.fetchone():
+                cursor.execute("""
+                    ALTER TABLE ask_data_dataset_columns 
+                    ADD COLUMN dictionary_id VARCHAR(100)
+                """)
+                self.logger.info("✅ 已添加 dictionary_id 字段")
+                
+        except Exception as e:
+            self.logger.error(f"添加缺失字段失败: {str(e)}")
+            raise
     
     def save_schema_from_yaml(self, yaml_path: str, created_by: str = None) -> int:
         """
@@ -259,8 +302,8 @@ class SchemaDatabase:
             for i, column in enumerate(columns):
                 cursor.execute('''
                     INSERT INTO ask_data_dataset_columns 
-                    (dataset_id, name, type, description, alias, sort_order, is_required, default_value)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (dataset_id, name, type, description, alias, sort_order, is_required, default_value, column_category, dictionary_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ''', (
                     dataset_id,
                     column['name'],
@@ -269,7 +312,9 @@ class SchemaDatabase:
                     column.get('alias', None),
                     i,
                     column.get('is_required', False),
-                    column.get('default_value')
+                    column.get('default_value'),
+                    column.get('column_category', 'metric'),
+                    column.get('dictionary_id')
                 ))
             
             # 保存业务指标
@@ -672,7 +717,8 @@ class SchemaDatabase:
                 cursor.execute('''
                     SELECT 
                         name, type, description, alias,
-                        sort_order, is_required, default_value
+                        sort_order, is_required, default_value,
+                        column_category, dictionary_id
                     FROM ask_data_dataset_columns
                     WHERE dataset_id = %s
                     ORDER BY sort_order, name
@@ -866,11 +912,13 @@ class SchemaDatabase:
                     cursor.execute(
                         """
                         INSERT INTO ask_data_dataset_columns
-                        (dataset_id, name, type, description, sort_order)
-                        VALUES (%s, %s, %s, %s, %s)
+                        (dataset_id, name, type, description, sort_order, column_category, dictionary_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                         """,
                         (dataset_db_id, column['name'], column['type'], 
-                         column.get('description', ''), i)
+                         column.get('description', ''), i,
+                         column.get('column_category', 'metric'), 
+                         column.get('dictionary_id'))
                     )
             
             conn.commit()
@@ -1107,9 +1155,10 @@ class SchemaDatabase:
                         cursor.execute('''
                             INSERT INTO ask_data_dataset_columns (
                                 dataset_id, name, type, description, 
-                                alias, sort_order, is_required, default_value
+                                alias, sort_order, is_required, default_value,
+                                column_category, dictionary_id
                             ) VALUES (
-                                %s, %s, %s, %s, %s, %s, %s, %s
+                                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                             )
                         ''', (
                             dataset_db_id,
@@ -1119,7 +1168,9 @@ class SchemaDatabase:
                             column.get('alias'),
                             i,
                             column.get('is_required', False),
-                            column.get('default_value')
+                            column.get('default_value'),
+                            column.get('column_category', 'metric'),
+                            column.get('dictionary_id')
                         ))
                 
                 # 4. 保存transformations配置
@@ -1884,9 +1935,9 @@ class SchemaDatabase:
             
             cursor.execute('''
                 INSERT INTO ask_data_dataset_columns 
-                (dataset_id, name, type, description, alias, sort_order, is_required, default_value)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, name, type, description, alias, sort_order, is_required, default_value, created_at, updated_at
+                (dataset_id, name, type, description, alias, sort_order, is_required, default_value, column_category, dictionary_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id, name, type, description, alias, sort_order, is_required, default_value, column_category, dictionary_id, created_at, updated_at
             ''', (
                 int(dataset_id),
                 column_data['name'],
@@ -1895,7 +1946,9 @@ class SchemaDatabase:
                 column_data.get('alias'),
                 column_data.get('sort_order', 0),
                 column_data.get('is_required', False),
-                column_data.get('default_value')
+                column_data.get('default_value'),
+                column_data.get('column_category', 'metric'),
+                column_data.get('dictionary_id')
             ))
             
             result = cursor.fetchone()
@@ -1957,6 +2010,8 @@ class SchemaDatabase:
                 'sort_order': result['sort_order'],
                 'is_required': result['is_required'],
                 'default_value': result['default_value'],
+                'column_category': result.get('column_category', 'metric'),
+                'dictionary_id': result.get('dictionary_id'),
                 'created_at': result['created_at'].isoformat() if result['created_at'] else None,
                 'updated_at': result['updated_at'].isoformat() if result['updated_at'] else None
             }
@@ -1988,7 +2043,7 @@ class SchemaDatabase:
             update_values = []
             
             for field, value in updates.items():
-                if field in ['name', 'type', 'description', 'alias', 'sort_order', 'is_required', 'default_value']:
+                if field in ['name', 'type', 'description', 'alias', 'sort_order', 'is_required', 'default_value', 'column_category', 'dictionary_id']:
                     update_fields.append(f"{field} = %s")
                     update_values.append(value)
             
@@ -2080,6 +2135,8 @@ class SchemaDatabase:
                     'sort_order': row['sort_order'],
                     'is_required': row['is_required'],
                     'default_value': row['default_value'],
+                    'column_category': row.get('column_category', 'metric'),
+                    'dictionary_id': row.get('dictionary_id'),
                     'created_at': row['created_at'].isoformat() if row['created_at'] else None,
                     'updated_at': row['updated_at'].isoformat() if row['updated_at'] else None
                 })
