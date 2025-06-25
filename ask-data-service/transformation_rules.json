@@ -54,7 +54,7 @@
               "360725": "崇义县",
               "360726": "安远县"
             },
-            "new_column": "行政区名称"
+            "new_column": "县级名称"
           },
           "sort_order": 1,
           "enabled": true,

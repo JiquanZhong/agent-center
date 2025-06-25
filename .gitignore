@@ -15,3 +15,5 @@ ask-data-service/logs
 ask-data-service/export
 **/__pycache__
 ask-data-service/exports
+ask-data-service/datasets
+**/cursor
