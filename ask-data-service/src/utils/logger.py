@@ -8,9 +8,64 @@ import logging
 import logging.handlers
 import os
 import sys
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+class RichTracebackFormatter(logging.Formatter):
+    """富文本错误堆栈格式化器"""
+    
+    def format(self, record):
+        if record.exc_info:
+            # 获取异常信息
+            exc_type, exc_value, exc_traceback = record.exc_info
+            
+            # 构建详细的错误信息
+            error_lines = []
+            error_lines.append("=" * 80)
+            error_lines.append(f"🚨 ERROR OCCURRED: {exc_type.__name__}")
+            error_lines.append("=" * 80)
+            
+            # 添加基本信息
+            error_lines.append(f"📅 时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            error_lines.append(f"📝 消息: {record.getMessage()}")
+            error_lines.append(f"🏷️  日志器: {record.name}")
+            error_lines.append(f"⚠️  异常类型: {exc_type.__name__}")
+            error_lines.append(f"💬 异常消息: {str(exc_value)}")
+            error_lines.append("")
+            
+            # 构建堆栈跟踪
+            error_lines.append("📍 TRACEBACK:")
+            error_lines.append("─" * 80)
+            
+            tb_lines = traceback.format_tb(exc_traceback)
+            for i, tb_line in enumerate(tb_lines):
+                lines = tb_line.strip().split('\n')
+                for line in lines:
+                    if line.strip():
+                        if line.strip().startswith('File'):
+                            # 文件信息行
+                            error_lines.append(f"  📁 {line.strip()}")
+                        else:
+                            # 代码行
+                            error_lines.append(f"  ❱ {line.strip()}")
+            
+            error_lines.append("─" * 80)
+            error_lines.append("")
+            
+            # 如果有额外的上下文信息
+            if hasattr(record, 'extra_context'):
+                error_lines.append("🔍 CONTEXT:")
+                error_lines.append("─" * 80)
+                for key, value in record.extra_context.items():
+                    error_lines.append(f"  {key}: {value}")
+                error_lines.append("")
+            
+            return '\n'.join(error_lines)
+        else:
+            # 普通错误日志
+            return super().format(record)
 
 class ColoredFormatter(logging.Formatter):
     """彩色日志格式化器"""
@@ -26,6 +81,11 @@ class ColoredFormatter(logging.Formatter):
     }
     
     def format(self, record):
+        # 如果是异常记录且在控制台显示，使用富文本格式
+        if record.exc_info and hasattr(self, '_is_console') and self._is_console:
+            formatter = RichTracebackFormatter()
+            return formatter.format(record)
+        
         # 添加颜色
         if record.levelname in self.COLORS:
             record.levelname = f"{self.COLORS[record.levelname]}{record.levelname}{self.COLORS['RESET']}"
@@ -115,6 +175,8 @@ class LoggerManager:
             fmt='%(asctime)s | %(levelname)-8s | %(short_name)-20s | %(message)s',
             datefmt='%H:%M:%S'
         )
+        # 标记这是控制台格式化器，用于错误显示
+        formatter._is_console = True
         handler.setFormatter(formatter)
         return handler
     
@@ -150,11 +212,8 @@ class LoggerManager:
         )
         handler.setLevel(logging.ERROR)
         
-        # 错误日志详细格式
-        formatter = logging.Formatter(
-            fmt='%(asctime)s | %(levelname)-8s | %(name)-30s | %(funcName)-15s:%(lineno)d | %(message)s\n%(pathname)s\n',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+        # 使用富文本错误格式化器
+        formatter = RichTracebackFormatter()
         handler.setFormatter(formatter)
         return handler
     
@@ -286,12 +345,34 @@ class LogContext:
         else:
             self.logger.error(f"失败: {self.message} (耗时: {duration.total_seconds():.2f}秒) - {exc_val}")
 
+def log_exception(logger, message: str = "", **context):
+    """
+    记录异常的便捷函数
+    
+    Args:
+        logger: 日志器实例
+        message: 附加消息
+        **context: 额外的上下文信息
+    """
+    import sys
+    
+    # 获取当前异常信息
+    exc_info = sys.exc_info()
+    if exc_info[0] is None:
+        logger.error("调用 log_exception 但没有活跃的异常")
+        return
+    
+    # 创建带有上下文的日志记录
+    extra = {'extra_context': context} if context else {}
+    logger.error(message or "发生异常", exc_info=True, extra=extra)
+
 # 导出主要接口
 __all__ = [
     'get_logger',
     'setup_api_logging', 
     'log_function_call',
     'log_execution_time',
+    'log_exception',
     'LogContext',
     'logger_manager'
-] 
+]
