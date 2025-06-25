@@ -23,9 +23,10 @@ services:
       - microservice-network
 
   ask-data-service:
-    build:
-      context: ./ask-data-service
-      dockerfile: Dockerfile
+    # build:
+    #   context: ./ask-data-service
+    #   dockerfile: Dockerfile
+    image: ask-data-service:1.0
     container_name: ask-data-service
     ports:
       - "${ASK_DATA_PORT}:8000"

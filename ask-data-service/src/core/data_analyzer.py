@@ -641,12 +641,18 @@ class DataAnalyzer:
         logger = get_logger(__name__)
         
         try:
-            # 检查是否为土地数据（包含ZLDWDM和DLBM字段）
-            if 'ZLDWDM' in df.columns and 'DLBM' in df.columns:
-                logger.info("🏞️ 检测到土地数据，使用标准土地数据transformations")
-                return DataAnalyzer._generate_land_data_transformations()
+            # 使用新的转换规则管理器
+            from ..utils.transformation_rules import get_rule_manager
+            
+            rule_manager = get_rule_manager()
+            transformations = rule_manager.generate_transformations_for_dataframe(df)
+            
+            if transformations:
+                logger.info(f"✅ 使用规则管理器生成了{len(transformations)}个数据转换配置")
+                return transformations
             else:
-                # 使用通用的transformations生成逻辑
+                # 如果没有匹配的规则，使用通用的transformations生成逻辑作为回退
+                logger.warning("⚠️ 没有匹配的转换规则，使用通用生成逻辑")
                 transformations = TransformationsHelper.generate_transformations_for_data(df, data_type)
                 logger.info(f"✅ 自动生成{len(transformations)}个数据转换配置")
                 return transformations
@@ -654,194 +660,8 @@ class DataAnalyzer:
             logger.error(f"❌ 自动生成transformations失败: {e}")
             return []
     
-    @staticmethod
-    def _generate_land_data_transformations() -> List[Dict[str, Any]]:
-        """
-        生成标准的土地数据transformations配置
-        
-        Returns:
-            标准土地数据transformations配置列表
-        """
-        return [
-            {
-                "name": "提取省级代码",
-                "type": "extract",
-                "params": {
-                    "column": "ZLDWDM",
-                    "pattern": r"^(\d{2})",
-                    "new_column": "省级代码"
-                },
-                "sort_order": 0,
-                "enabled": True,
-                "description": "从ZLDWDM（坐落单位代码）中提取前2位作为省级行政区划代码"
-            },
-            {
-                "name": "提取市级代码",
-                "type": "extract",
-                "params": {
-                    "column": "ZLDWDM",
-                    "pattern": r"^(\d{4})",
-                    "new_column": "市级代码"
-                },
-                "sort_order": 0,
-                "enabled": True,
-                "description": "从ZLDWDM（坐落单位代码）中提取前4位作为市级行政区划代码"
-            },
-            {
-                "name": "提取县级代码",
-                "type": "extract",
-                "params": {
-                    "column": "ZLDWDM",
-                    "pattern": r"^(\d{6})",
-                    "new_column": "县级代码"
-                },
-                "sort_order": 0,
-                "enabled": True,
-                "description": "从ZLDWDM（坐落单位代码）中提取前6位作为县级行政区划代码"
-            },
-            {
-                "name": "县级代码映射",
-                "type": "map_values",
-                "params": {
-                    "column": "县级代码",
-                    "mapping": {
-                        "360702": "章贡区",
-                        "360703": "南康区", 
-                        "360704": "赣县区",
-                        "360722": "信丰县",
-                        "360723": "大余县",
-                        "360724": "上犹县",
-                        "360725": "崇义县",
-                        "360726": "安远县"
-                    },
-                    "new_column": "行政区名称"
-                },
-                "sort_order": 1,
-                "enabled": True,
-                "description": "将县级行政区划代码映射为区县名称"
-            },
-            {
-                "name": "提取大类编码",
-                "type": "extract",
-                "params": {
-                    "column": "DLBM",
-                    "pattern": r"^(\d{2})",
-                    "new_column": "大类编码"
-                },
-                "sort_order": 2,
-                "enabled": True,
-                "description": "从DLBM（地类编码）中提取前2位作为大类编码"
-            },
-            {
-                "name": "大类编码映射",
-                "type": "map_values",
-                "params": {
-                    "column": "大类编码",
-                    "mapping": {
-                        "01": "耕地",
-                        "02": "园地",
-                        "03": "林地",
-                        "04": "草地",
-                        "10": "交通运输用地",
-                        "11": "水域",
-                        "12": "其他类型土地",
-                        "20": "城镇村及工矿用地",
-                        "91": "其他类型农用地",
-                        "92": "水工建筑用地"
-                    },
-                    "new_column": "一级地类名称"
-                },
-                "sort_order": 3,
-                "enabled": True,
-                "description": "将大类编码映射为一级地类名称"
-            },
-            {
-                "name": "标准化面积数据",
-                "type": "to_numeric",
-                "params": {
-                    "column": "TBMJ",
-                    "errors": "coerce"
-                },
-                "sort_order": 4,
-                "enabled": True,
-                "description": "确保图斑面积字段为数值类型"
-            },
-            {
-                "name": "详细地类编码映射",
-                "type": "map_values",
-                "params": {
-                    "column": "DLBM",
-                    "mapping": {
-                        "201": "城市",
-                        "202": "建制镇",
-                        "203": "村庄",
-                        "204": "盐田及采矿用地",
-                        "205": "特殊用地",
-                        "0101": "水田",
-                        "0102": "水浇地",
-                        "0103": "旱地",
-                        "0201": "果园",
-                        "0202": "茶园",
-                        "0203": "橡胶园",
-                        "0204": "其他园地",
-                        "0301": "乔木林地",
-                        "0302": "竹林地",
-                        "0303": "红树林地",
-                        "0304": "森林沼泽",
-                        "0305": "灌木林地",
-                        "0306": "灌丛沼泽",
-                        "0307": "其他林地",
-                        "0401": "天然牧草地",
-                        "0402": "沼泽草地",
-                        "0403": "人工牧草地",
-                        "0404": "其他草地",
-                        "1001": "铁路用地",
-                        "1002": "轨道交通用地",
-                        "1003": "公路用地",
-                        "1006": "农村道路",
-                        "1007": "机场用地",
-                        "1008": "港口码头用地",
-                        "1009": "管道运输用地",
-                        "1101": "河流水面",
-                        "1102": "湖泊水面",
-                        "1103": "水库水面",
-                        "1104": "坑塘水面",
-                        "1105": "沿海滩涂",
-                        "1106": "内陆滩涂",
-                        "1107": "沟渠",
-                        "1108": "沼泽地",
-                        "1109": "水工建筑用地",
-                        "1110": "冰川及永久积雪",
-                        "1202": "设施农用地",
-                        "1203": "田坎",
-                        "1204": "盐碱地",
-                        "1205": "沙地",
-                        "1206": "裸土地",
-                        "1207": "裸岩石砾地",
-                        "201A": "城市独立工业用地",
-                        "202A": "建制镇独立工业用地",
-                        "203A": "村庄独立工业用地",
-                        "1104A": "养殖坑塘",
-                        "1107A": "干渠"
-                    },
-                    "new_column": "地类名称"
-                },
-                "sort_order": 5,
-                "enabled": True,
-                "description": "将详细地类编码转换为具体地类名称"
-            },
-            {
-                "name": "四舍五入面积",
-                "type": "round_numbers",
-                "params": {
-                    "column": "TBMJ",
-                    "decimals": 2
-                },
-                "sort_order": 6,
-                "enabled": True,
-                "description": "将面积保留2位小数"
-            }
-        ]
+# 注意：原有的 _generate_land_data_transformations 方法已被新的规则管理器替代
+    # 相关配置现在存储在 utils/transformation_rules.json 文件中
     
     @staticmethod
     def apply_transformations_to_dataframe(df: pd.DataFrame, transformations: List[Dict[str, Any]]) -> pd.DataFrame:
