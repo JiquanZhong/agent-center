@@ -63,13 +63,14 @@ class QueryEngine:
         # 配置PandasAI
         pai.config.set({
             "llm": llm,
-            "verbose": True,
+            "verbose": False,  # 禁用控制台输出，只使用文件日志
             "enable_cache": True,
             "cache_path": "cache",
             "custom_whitelisted_dependencies": ["matplotlib", "seaborn", "plotly", "kaleido"],
             "enforce_privacy": False,  # 允许记录详细日志
             "log_server_url": None,   # 禁用远程日志服务器
-            "advanced_reasoning": True  # 启用高级推理日志
+            "advanced_reasoning": True,  # 启用高级推理日志
+            "save_logs": True  # 启用日志保存
         })
         
         # 加载数据
@@ -114,6 +115,42 @@ class QueryEngine:
         """配置PandasAI详细日志"""
         import logging
         
+        # 确保logs目录存在
+        logs_dir = 'logs'
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
+            self.logger.info(f"📁 创建日志目录: {logs_dir}")
+        
+        # PandasAI日志文件路径
+        pandasai_log_path = os.path.join(logs_dir, 'pandasai.log')
+        
+        # 修补PandasAI内置Logger的日志文件路径
+        try:
+            from pandasai.helpers.logger import Logger
+            from pandasai.helpers.path import find_closest
+            
+            # 保存原始的find_closest函数
+            original_find_closest = find_closest
+            
+            # 创建自定义的find_closest函数
+            def custom_find_closest(filename):
+                if filename == "pandasai.log":
+                    return pandasai_log_path
+                return original_find_closest(filename)
+            
+            # 替换find_closest函数
+            import pandasai.helpers.path
+            pandasai.helpers.path.find_closest = custom_find_closest
+            
+            # 也替换logger模块中的引用
+            import pandasai.helpers.logger
+            pandasai.helpers.logger.find_closest = custom_find_closest
+            
+            self.logger.debug("🔧 已修补PandasAI内置Logger路径")
+            
+        except Exception as e:
+            self.logger.warning(f"修补PandasAI日志路径失败: {e}")
+        
         # 获取PandasAI相关的logger
         pandasai_loggers = [
             'pandasai',
@@ -131,23 +168,25 @@ class QueryEngine:
             logger = logging.getLogger(logger_name)
             logger.setLevel(logging.DEBUG)
             
-            # 如果没有handler，添加文件handler
-            if not logger.handlers:
-                file_handler = logging.FileHandler('pandasai.log', encoding='utf-8')
-                file_handler.setLevel(logging.DEBUG)
-                
-                # 设置详细的日志格式
-                formatter = logging.Formatter(
-                    '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S'
-                )
-                file_handler.setFormatter(formatter)
-                
-                logger.addHandler(file_handler)
-                # 防止重复日志
-                logger.propagate = False
+            # 清除现有的handlers
+            logger.handlers.clear()
+            
+            # 添加文件handler
+            file_handler = logging.FileHandler(pandasai_log_path, encoding='utf-8')
+            file_handler.setLevel(logging.DEBUG)
+            
+            # 设置详细的日志格式
+            formatter = logging.Formatter(
+                '%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            file_handler.setFormatter(formatter)
+            
+            logger.addHandler(file_handler)
+            # 防止重复日志
+            logger.propagate = False
         
-        self.logger.info("🔧 已配置PandasAI详细日志输出到 pandasai.log")
+        self.logger.info(f"🔧 已配置PandasAI详细日志输出到 {pandasai_log_path}")
     
     def set_query_id(self, query_id):
         """
