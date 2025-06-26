@@ -179,10 +179,8 @@ class QueryEngine:
 {context}
 
 重要说明：
-- 结果格式：result = {{"type": "string|number|dataframe", "value": 具体值}}
-- 如果是数值结果，使用"number"类型
+- 结果格式：result = {{"type": "string", "value": 具体值}}
 - 如果是文本描述，使用"string"类型
-- 不要使用"integer"类型
 """
         
         try:
