@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
         settings = Settings()
         logger.info("✅ 配置加载成功")
         logger.info(f"📊 数据库连接: {settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}")
-        logger.info(f"🤖 LLM模型: {getattr(settings, 'llm_model', 'unknown')}")
+        logger.info(f"🤖 LLM模型: {getattr(settings, 'model_name', 'unknown')}")
         
         # 测试数据库连接
         from ..utils.schema_database import SchemaDatabase
