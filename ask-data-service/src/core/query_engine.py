@@ -11,6 +11,7 @@ from ..utils.chart_patch import apply_chart_patch
 from ..utils.string_response_patch import apply_string_response_patch
 from ..utils.schema_database import SchemaDatabase
 from ..utils.logger import get_logger, LogContext
+from ..utils.sql_interceptor import get_sql_interceptor, start_sql_interception, stop_sql_interception, clear_current_query
 
 # 配置matplotlib不显示弹窗
 import matplotlib
@@ -105,6 +106,9 @@ class QueryEngine:
         
         # 应用String响应补丁
         apply_string_response_patch()
+        
+        # 初始化SQL拦截器
+        self.sql_interceptor = get_sql_interceptor()
     
     def _configure_pandasai_logging(self):
         """配置PandasAI详细日志"""
@@ -188,6 +192,10 @@ class QueryEngine:
             self.logger.info(f"🔍 开始查询: {question}")
             self.logger.debug(f"📝 增强查询: {enhanced_query}")
             
+            # 清空之前的SQL记录并启动拦截
+            clear_current_query()
+            start_sql_interception()
+            
             with LogContext(self.logger, "执行PandasAI查询"):
                 # 确保PandasAI日志记录到文件
                 import logging
@@ -198,6 +206,15 @@ class QueryEngine:
                 # 记录响应类型和内容
                 self.logger.debug(f"📊 响应类型: {type(response)}")
                 self.logger.debug(f"📋 响应内容: {str(response)[:200]}...")
+                
+                # 记录执行的SQL
+                executed_sqls = self.sql_interceptor.get_current_query_sqls()
+                if executed_sqls:
+                    self.logger.debug(f"🗂️ 执行了 {len(executed_sqls)} 个SQL查询:")
+                    for i, sql_record in enumerate(executed_sqls, 1):
+                        self.logger.info(f"  SQL #{i}: {sql_record['sql']}")
+                else:
+                    self.logger.info("📝 未检测到SQL查询执行")
             
             # 检查响应是否有效（针对String响应补丁后的逻辑）
             if self._is_valid_response(response):
@@ -217,6 +234,9 @@ class QueryEngine:
             logging.getLogger('pandasai').error(f"查询失败: {question} - 错误: {str(e)}")
             # 由于应用了String补丁，返回错误信息字符串
             return f"查询过程中出现错误：{str(e)}\n💡 建议：尝试重新表述问题或检查问题是否与数据相关"
+        finally:
+            # 停止SQL拦截
+            stop_sql_interception()
     
     def _is_valid_response(self, response):
         """
@@ -245,6 +265,27 @@ class QueryEngine:
     def get_data_info(self):
         """获取数据信息"""
         return self.data_info
+    
+    def get_executed_sqls(self):
+        """获取当前查询执行的SQL查询列表"""
+        return self.sql_interceptor.get_current_query_sqls()
+    
+    def get_executed_sqls_string(self):
+        """获取当前查询执行的SQL查询字符串"""
+        sqls = self.sql_interceptor.get_current_query_sqls()
+        if not sqls:
+            return None
+        
+        # 如果只有一个SQL，直接返回
+        if len(sqls) == 1:
+            return sqls[0]["sql"]
+        
+        # 如果有多个SQL，用换行符连接
+        return "\n\n".join([f"-- Query {sql['execution_order']}\n{sql['sql']}" for sql in sqls])
+    
+    def get_latest_sql(self):
+        """获取最新执行的SQL"""
+        return self.sql_interceptor.get_latest_sql()
     
     def print_data_summary(self):
         """打印数据摘要信息"""

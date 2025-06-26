@@ -163,6 +163,9 @@ async def execute_query(
             "column_count": query_engine.get_data_info().get('shape', [0, 0])[1]
         }
         
+        # 9. 获取执行的SQL查询字符串
+        executed_sqls_string = query_engine.get_executed_sqls_string()
+        
         return QueryResponse(
             success=True,
             message="查询执行成功",
@@ -173,7 +176,8 @@ async def execute_query(
                 "query_id": query_id,
                 "have_chart": have_chart,
                 "chart_base64": chart_base64,
-                "dataset_info": dataset_metadata
+                "dataset_info": dataset_metadata,
+                "sql_queries": executed_sqls_string
             },
             timestamp=datetime.utcnow().isoformat()
         )
@@ -194,6 +198,14 @@ async def execute_query(
         # 即使出错也检查是否有图表生成
         have_chart, chart_base64 = check_and_encode_chart(query_id)
         
+        # 尝试获取SQL查询字符串（如果查询引擎已创建）
+        executed_sqls_string = None
+        try:
+            if 'query_engine' in locals():
+                executed_sqls_string = query_engine.get_executed_sqls_string()
+        except:
+            pass
+        
         return QueryResponse(
             success=False,
             message="查询执行失败",
@@ -204,7 +216,8 @@ async def execute_query(
                 "query_id": query_id,
                 "have_chart": have_chart,
                 "chart_base64": chart_base64,
-                "dataset_info": {"dataset_id": query_request.dataset_id}
+                "dataset_info": {"dataset_id": query_request.dataset_id},
+                "sql_queries": executed_sqls_string
             },
             error=error_detail,
             timestamp=datetime.utcnow().isoformat()

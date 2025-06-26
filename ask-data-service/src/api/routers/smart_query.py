@@ -184,7 +184,8 @@ async def smart_query(
                 "chart_base64": None,
                 "dataset_info": None,
                 "matched_datasets": [match.dict() for match in matched_datasets],
-                "auto_executed": False
+                "auto_executed": False,
+                "sql_queries": None
             }
             
             # 4. 如果启用自动执行且有匹配结果
@@ -213,7 +214,8 @@ async def smart_query(
                             "have_chart": query_result["have_chart"],
                             "chart_base64": query_result["chart_base64"],
                             "dataset_info": query_result["dataset_info"],
-                            "auto_executed": True
+                            "auto_executed": True,
+                            "sql_queries": query_result.get("sql_queries")
                         })
                         
                         message = f"查询执行成功"
@@ -264,7 +266,8 @@ async def smart_query(
                 "chart_base64": chart_base64,
                 "dataset_info": None,
                 "matched_datasets": [],
-                "auto_executed": False
+                "auto_executed": False,
+                "sql_queries": None
             },
             error=str(e),
             timestamp=datetime.utcnow().isoformat()
@@ -361,6 +364,7 @@ async def _execute_query_with_dataset(
         "result": result,
         "result_type": result_type,
         "have_chart": have_chart,
+        "sql_queries": query_engine.get_executed_sqls_string(),
         "chart_base64": chart_base64,
         "dataset_info": {
             "dataset_id": dataset_id,
@@ -368,7 +372,7 @@ async def _execute_query_with_dataset(
             "file_path": file_path,
             "row_count": query_engine.get_data_info().get('shape', [0, 0])[0],
             "column_count": query_engine.get_data_info().get('shape', [0, 0])[1]
-        }
+        },
     }
 
 @router.post("/sync-datasets", response_model=StandardResponse, summary="同步数据集到向量库")
@@ -446,4 +450,6 @@ async def get_embedding_info(
             message=f"获取embedding模型信息失败: {str(e)}",
             error=str(e),
             timestamp=datetime.utcnow().isoformat()
-        ) 
+        )
+
+ 
