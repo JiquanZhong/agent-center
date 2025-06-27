@@ -16,12 +16,13 @@ from datetime import datetime
 
 from ..models import (
     DatasetCreateRequest, DatasetUpdateRequest, DatasetInfo,
-    StandardResponse, PaginatedResponse
+    StandardResponse, PaginatedResponse, DataPageResponse
 )
 from ..dependencies import get_database, get_settings
 from ...utils.schema_database import SchemaDatabase
 from ...config.settings import Settings
 from ...core.data_analyzer import DataAnalyzer
+from ...core.data_viewer import DataViewer
 from ...core.embedding_service import EmbeddingService
 from ...core.vector_search_service import VectorSearchService
 from ...core.intent_engine import IntentRecognitionEngine
@@ -870,6 +871,230 @@ async def sync_datasets_to_es(
         return StandardResponse(
             success=False,
             message=f"数据集ES同步失败: {str(e)}",
+            error=str(e),
+            timestamp=datetime.utcnow().isoformat()
+        )
+
+@router.get("/{dataset_id}/data", response_model=DataPageResponse, summary="分页查看数据集内容")
+async def get_dataset_data(
+    dataset_id: str,
+    page: int = 1,
+    per_page: int = 20,
+    db: SchemaDatabase = Depends(get_database)
+):
+    """
+    分页查看数据集的具体内容
+    
+    Args:
+        dataset_id: 数据集ID
+        page: 页码，从1开始
+        per_page: 每页记录数，最大200
+        db: 数据库连接
+        
+    Returns:
+        DataPageResponse: 包含CSV页头和分页数据的响应
+    """
+    try:
+        # 参数验证
+        if page < 1:
+            return DataPageResponse(
+                success=False,
+                message="页码必须大于0",
+                data={
+                    "headers": [],
+                    "data": [],
+                    "total_rows": 0,
+                    "total_columns": 0,
+                    "current_page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                },
+                error="无效的页码参数",
+                timestamp=datetime.utcnow().isoformat()
+            )
+        
+        if per_page > 200 or per_page < 1:
+            return DataPageResponse(
+                success=False,
+                message="每页记录数必须在1-200之间",
+                data={
+                    "headers": [],
+                    "data": [],
+                    "total_rows": 0,
+                    "total_columns": 0,
+                    "current_page": page,
+                    "per_page": per_page,
+                    "total_pages": 0
+                },
+                error="无效的每页记录数参数",
+                timestamp=datetime.utcnow().isoformat()
+            )
+        
+        with LogContext(logger, f"分页查看数据集内容 - dataset_id: {dataset_id}"):
+            # 创建数据查看器实例
+            data_viewer = DataViewer(db=db)
+            
+            # 获取分页数据
+            page_data = data_viewer.get_paginated_data(
+                dataset_id=dataset_id,
+                page=page,
+                per_page=per_page
+            )
+            
+            # 构建响应
+            from ..models import DataPageInfo
+            data_info = DataPageInfo(
+                headers=page_data["headers"],
+                data=page_data["data"],
+                total_rows=page_data["total_rows"],
+                total_columns=page_data["total_columns"],
+                current_page=page_data["current_page"],
+                per_page=page_data["per_page"],
+                total_pages=page_data["total_pages"]
+            )
+            
+            logger.info(f"✅ 分页数据获取成功 - 数据集: {dataset_id}, 页码: {page}, 返回记录数: {len(page_data['data'])}")
+            
+            return DataPageResponse(
+                success=True,
+                message=f"获取数据集内容成功 - 第{page}页，共{page_data['total_pages']}页",
+                data=data_info,
+                timestamp=datetime.utcnow().isoformat()
+            )
+            
+    except ValueError as ve:
+        logger.error(f"❌ 分页查看数据集内容参数错误: {str(ve)}")
+        return DataPageResponse(
+            success=False,
+            message="获取数据集内容失败",
+            data={
+                "headers": [],
+                "data": [],
+                "total_rows": 0,
+                "total_columns": 0,
+                "current_page": page,
+                "per_page": per_page,
+                "total_pages": 0
+            },
+            error=str(ve),
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error(f"❌ 分页查看数据集内容失败: {str(e)}")
+        return DataPageResponse(
+            success=False,
+            message="获取数据集内容失败",
+            data={
+                "headers": [],
+                "data": [],
+                "total_rows": 0,
+                "total_columns": 0,
+                "current_page": page,
+                "per_page": per_page,
+                "total_pages": 0
+            },
+            error=str(e),
+            timestamp=datetime.utcnow().isoformat()
+        )
+
+@router.get("/{dataset_id}/preview", response_model=DataPageResponse, summary="预览数据集内容")
+async def preview_dataset_data(
+    dataset_id: str,
+    preview_rows: int = 5,
+    db: SchemaDatabase = Depends(get_database)
+):
+    """
+    预览数据集的前几行内容
+    
+    Args:
+        dataset_id: 数据集ID
+        preview_rows: 预览行数，默认5行，最大20行
+        db: 数据库连接
+        
+    Returns:
+        DataPageResponse: 包含CSV页头和预览数据的响应
+    """
+    try:
+        # 参数验证
+        if preview_rows > 20 or preview_rows < 1:
+            return DataPageResponse(
+                success=False,
+                message="预览行数必须在1-20之间",
+                data={
+                    "headers": [],
+                    "data": [],
+                    "total_rows": 0,
+                    "total_columns": 0,
+                    "current_page": 1,
+                    "per_page": preview_rows,
+                    "total_pages": 0
+                },
+                error="无效的预览行数参数",
+                timestamp=datetime.utcnow().isoformat()
+            )
+        
+        with LogContext(logger, f"预览数据集内容 - dataset_id: {dataset_id}"):
+            # 创建数据查看器实例
+            data_viewer = DataViewer(db=db)
+            
+            # 获取预览数据
+            preview_data = data_viewer.get_data_preview(
+                dataset_id=dataset_id,
+                preview_rows=preview_rows
+            )
+            
+            # 构建响应
+            from ..models import DataPageInfo
+            data_info = DataPageInfo(
+                headers=preview_data["headers"],
+                data=preview_data["data"],
+                total_rows=preview_data["total_rows"],
+                total_columns=preview_data["total_columns"],
+                current_page=1,
+                per_page=preview_rows,
+                total_pages=preview_data["total_pages"]
+            )
+            
+            logger.info(f"✅ 数据集预览获取成功 - 数据集: {dataset_id}, 预览行数: {len(preview_data['data'])}")
+            
+            return DataPageResponse(
+                success=True,
+                message=f"获取数据集预览成功 - 显示前{len(preview_data['data'])}行",
+                data=data_info,
+                timestamp=datetime.utcnow().isoformat()
+            )
+            
+    except ValueError as ve:
+        logger.error(f"❌ 预览数据集内容参数错误: {str(ve)}")
+        return DataPageResponse(
+            success=False,
+            message="获取数据集预览失败",
+            data={
+                "headers": [],
+                "data": [],
+                "total_rows": 0,
+                "total_columns": 0,
+                "current_page": 1,
+                "per_page": preview_rows,
+                "total_pages": 0
+            },
+            error=str(ve),
+            timestamp=datetime.utcnow().isoformat()
+        )
+    except Exception as e:
+        logger.error(f"❌ 预览数据集内容失败: {str(e)}")
+        return DataPageResponse(
+            success=False,
+            message="获取数据集预览失败",
+            data={
+                "headers": [],
+                "data": [],
+                "total_rows": 0,
+                "total_columns": 0,
+                "current_page": 1,
+                "per_page": preview_rows,
+                "total_pages": 0
+            },
             error=str(e),
             timestamp=datetime.utcnow().isoformat()
         ) 

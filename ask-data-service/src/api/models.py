@@ -335,4 +335,77 @@ TreeNode.model_rebuild()
 # 保留旧的模型名称以向后兼容
 BaseResponse = StandardResponse
 DatasetListResponse = PaginatedResponse
-ErrorResponse = StandardResponse 
+ErrorResponse = StandardResponse
+
+# ====================== 数据分页查看相关模型 ======================
+
+class DataPageRequest(BaseModel):
+    """数据分页查看请求模型"""
+    dataset_id: str = Field(..., description="数据集ID")
+    page: int = Field(1, ge=1, description="页码，从1开始")
+    per_page: int = Field(20, ge=1, le=200, description="每页记录数，最大200")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "dataset_id": "23",
+                "page": 1,
+                "per_page": 20
+            }
+        }
+
+class DataPageInfo(BaseModel):
+    """数据分页信息模型"""
+    headers: List[str] = Field(..., description="CSV文件的列头")
+    data: List[List[Any]] = Field(..., description="分页数据记录")
+    total_rows: int = Field(..., description="总行数")
+    total_columns: int = Field(..., description="总列数")
+    current_page: int = Field(..., description="当前页码")
+    per_page: int = Field(..., description="每页记录数")
+    total_pages: int = Field(..., description="总页数")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "headers": ["列1", "列2", "列3"],
+                "data": [
+                    ["值1", "值2", "值3"],
+                    ["值4", "值5", "值6"]
+                ],
+                "total_rows": 1000,
+                "total_columns": 3,
+                "current_page": 1,
+                "per_page": 20,
+                "total_pages": 50
+            }
+        }
+
+class DataPageResponse(BaseModel):
+    """数据分页查看响应模型"""
+    success: bool = Field(..., description="操作是否成功")
+    message: str = Field(..., description="响应消息")
+    data: DataPageInfo = Field(..., description="分页数据信息")
+    error: Optional[str] = Field(None, description="错误信息")
+    timestamp: Optional[str] = Field(None, description="响应时间戳")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "message": "获取数据成功",
+                "data": {
+                    "headers": ["列1", "列2", "列3"],
+                    "data": [
+                        ["值1", "值2", "值3"],
+                        ["值4", "值5", "值6"]
+                    ],
+                    "total_rows": 1000,
+                    "total_columns": 3,
+                    "current_page": 1,
+                    "per_page": 20,
+                    "total_pages": 50
+                },
+                "error": None,
+                "timestamp": "2024-01-01T00:00:00Z"
+            }
+        } 
