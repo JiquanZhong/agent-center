@@ -189,45 +189,73 @@ class EmbeddingService:
         Returns:
             np.ndarray: 数据集向量
         """
-        # 构建数据集的综合描述文本
-        text_parts = []
-        
-        # 数据集名称
-        if dataset_info.get('name'):
-            text_parts.append(f"数据集名称：{dataset_info['name']}")
-        
-        # 数据集描述
-        if dataset_info.get('description'):
-            text_parts.append(f"描述：{dataset_info['description']}")
-        
-        # 关键词
-        if dataset_info.get('keywords'):
-            keywords = dataset_info['keywords']
-            if isinstance(keywords, list):
-                text_parts.append(f"关键词：{', '.join(keywords)}")
+        try:
+            self.logger.debug(f"🧠 开始生成数据集向量: {dataset_info.get('name', 'Unknown')}")
+            
+            # 构建数据集的综合描述文本
+            text_parts = []
+            
+            # 数据集名称
+            if dataset_info.get('name'):
+                text_parts.append(f"数据集名称：{dataset_info['name']}")
+                self.logger.debug(f"📝 添加名称: {dataset_info['name']}")
+            
+            # 数据集描述
+            if dataset_info.get('description'):
+                text_parts.append(f"描述：{dataset_info['description']}")
+                self.logger.debug(f"📝 添加描述: {dataset_info['description'][:50]}...")
+            
+            # 关键词
+            if dataset_info.get('keywords'):
+                keywords = dataset_info['keywords']
+                if isinstance(keywords, list):
+                    text_parts.append(f"关键词：{', '.join(keywords)}")
+                    self.logger.debug(f"📝 添加关键词列表: {len(keywords)}个")
+                else:
+                    text_parts.append(f"关键词：{keywords}")
+                    self.logger.debug(f"📝 添加关键词字符串: {keywords}")
+            
+            # 业务领域
+            if dataset_info.get('domain'):
+                text_parts.append(f"业务领域：{dataset_info['domain']}")
+                self.logger.debug(f"📝 添加业务领域: {dataset_info['domain']}")
+            
+            # 数据摘要
+            if dataset_info.get('data_summary'):
+                text_parts.append(f"数据摘要：{dataset_info['data_summary']}")
+                self.logger.debug(f"📝 添加数据摘要: {dataset_info['data_summary'][:50]}...")
+            
+            # 列信息
+            if dataset_info.get('columns_info'):
+                text_parts.append(f"数据字段：{dataset_info['columns_info']}")
+                self.logger.debug(f"📝 添加列信息: {dataset_info['columns_info'][:50]}...")
+            
+            # 合并所有文本
+            combined_text = " ".join(text_parts)
+            
+            if not combined_text.strip():
+                self.logger.warning("❌ 数据集信息为空，返回零向量")
+                return np.zeros(1024)
+            
+            self.logger.debug(f"📝 合并文本长度: {len(combined_text)} 字符")
+            self.logger.debug(f"📝 合并文本预览: {combined_text[:100]}...")
+            
+            # 调用向量化服务
+            embedding = self.encode_single(combined_text)
+            
+            if embedding is not None and hasattr(embedding, 'shape'):
+                self.logger.debug(f"✅ 向量生成成功: 维度={embedding.shape}")
             else:
-                text_parts.append(f"关键词：{keywords}")
-        
-        # 业务领域
-        if dataset_info.get('domain'):
-            text_parts.append(f"业务领域：{dataset_info['domain']}")
-        
-        # 数据摘要
-        if dataset_info.get('data_summary'):
-            text_parts.append(f"数据摘要：{dataset_info['data_summary']}")
-        
-        # 列信息
-        if dataset_info.get('columns_info'):
-            text_parts.append(f"数据字段：{dataset_info['columns_info']}")
-        
-        # 合并所有文本
-        combined_text = " ".join(text_parts)
-        
-        if not combined_text.strip():
-            self.logger.warning("数据集信息为空，返回零向量")
+                self.logger.warning(f"⚠️ 向量生成异常: 返回值类型={type(embedding)}")
+            
+            return embedding
+            
+        except Exception as e:
+            self.logger.error(f"❌ 数据集向量生成失败: {e}")
+            self.logger.error(f"❌ 错误详情: {type(e).__name__}: {str(e)}")
+            import traceback
+            self.logger.error(f"❌ 堆栈跟踪: {traceback.format_exc()}")
             return np.zeros(1024)
-        
-        return self.encode_single(combined_text)
     
     def get_model_info(self) -> dict:
         """

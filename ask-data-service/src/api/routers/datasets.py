@@ -91,6 +91,8 @@ async def sync_dataset_to_es(dataset_id: str, db: SchemaDatabase,
         bool: 是否成功
     """
     try:
+        logger.info(f"🔄 开始ES同步: 数据集 {dataset_id}, 操作: {operation}")
+        
         if operation == "delete":
             # 删除ES中的数据集索引
             success = intent_engine.vector_service.delete_dataset(dataset_id)
@@ -101,50 +103,86 @@ async def sync_dataset_to_es(dataset_id: str, db: SchemaDatabase,
             return success
         
         # 获取数据集信息
+        logger.debug(f"📊 获取数据集 {dataset_id} 的信息...")
         dataset = db.get_dataset_by_id(dataset_id)
         if not dataset:
-            logger.error(f"数据集 {dataset_id} 不存在，无法同步到ES")
+            logger.error(f"❌ 数据集 {dataset_id} 不存在，无法同步到ES")
             return False
         
+        logger.debug(f"📊 数据集基本信息: 名称={dataset.get('name')}, 状态={dataset.get('status')}")
+        
         # 获取列信息构建完整的数据集信息
-        columns = db.list_dataset_columns(dataset_id)
-        columns_info = ", ".join([f"{col['name']}({col['type']})" for col in columns])
+        logger.debug(f"📊 获取数据集 {dataset_id} 的列信息...")
+        try:
+            columns = db.list_dataset_columns(dataset_id)
+            logger.debug(f"📊 找到 {len(columns)} 个列")
+            columns_info = ", ".join([f"{col['name']}({col['type']})" for col in columns])
+        except Exception as col_e:
+            logger.warning(f"⚠️ 获取列信息失败: {col_e}")
+            columns = []
+            columns_info = ""
         
         # 构建完整的数据集信息
-        dataset_info = {
-            "name": dataset.get('name', ''),
-            "description": dataset.get('description', ''),
-            "keywords": intent_engine._generate_keywords_from_dataset(dataset, columns),
-            "domain": intent_engine._infer_domain_from_dataset(dataset, columns),
-            "data_summary": intent_engine._generate_data_summary(dataset, columns),
-            "columns_info": columns_info,
-            "tree_node_id": dataset.get('tree_node_id', ''),
-            "file_path": dataset.get('actual_data_path') or dataset.get('file_path', ''),
-            "status": dataset.get('status', 'active'),
-            "created_at": dataset.get('created_at'),
-            "updated_at": dataset.get('updated_at')
-        }
+        logger.debug(f"🏗️ 构建数据集信息...")
+        try:
+            dataset_info = {
+                "name": dataset.get('name', ''),
+                "description": dataset.get('description', ''),
+                "keywords": intent_engine._generate_keywords_from_dataset(dataset, columns),
+                "domain": intent_engine._infer_domain_from_dataset(dataset, columns),
+                "data_summary": intent_engine._generate_data_summary(dataset, columns),
+                "columns_info": columns_info,
+                "tree_node_id": dataset.get('tree_node_id', ''),
+                "file_path": dataset.get('actual_data_path') or dataset.get('file_path', ''),
+                "status": dataset.get('status', 'active'),
+                "created_at": dataset.get('created_at'),
+                "updated_at": dataset.get('updated_at')
+            }
+            logger.debug(f"🏗️ 数据集信息构建完成: 名称={dataset_info['name']}, 领域={dataset_info['domain']}")
+        except Exception as info_e:
+            logger.error(f"❌ 构建数据集信息失败: {info_e}")
+            return False
         
         # 生成向量
-        embedding = intent_engine.embedding_service.generate_dataset_embedding(dataset_info)
+        logger.debug(f"🧠 开始生成数据集 {dataset_id} 的向量...")
+        try:
+            embedding = intent_engine.embedding_service.generate_dataset_embedding(dataset_info)
+            if embedding is None or (hasattr(embedding, 'shape') and embedding.shape[0] == 0):
+                logger.error(f"❌ 向量生成返回空结果")
+                return False
+            logger.debug(f"🧠 向量生成成功: 维度={embedding.shape if hasattr(embedding, 'shape') else len(embedding)}")
+        except Exception as emb_e:
+            logger.error(f"❌ 向量生成失败: {emb_e}")
+            logger.error(f"❌ 向量生成错误详情: {type(emb_e).__name__}: {str(emb_e)}")
+            return False
         
         # 根据操作类型执行相应的ES操作
-        if operation == "index":
-            success = intent_engine.vector_service.index_dataset(dataset_id, dataset_info, embedding)
-        elif operation == "update":
-            success = intent_engine.vector_service.update_dataset(dataset_id, dataset_info, embedding)
-        else:
-            success = intent_engine.vector_service.index_dataset(dataset_id, dataset_info, embedding)
-        
-        if success:
-            logger.info(f"✅ 数据集 {dataset_id} ({dataset.get('name')}) 已同步到ES ({operation})")
-        else:
-            logger.error(f"❌ 数据集 {dataset_id} 同步到ES失败 ({operation})")
-        
-        return success
+        logger.debug(f"📝 开始ES索引操作: {operation}")
+        try:
+            if operation == "index":
+                success = intent_engine.vector_service.index_dataset(dataset_id, dataset_info, embedding)
+            elif operation == "update":
+                success = intent_engine.vector_service.update_dataset(dataset_id, dataset_info, embedding)
+            else:
+                success = intent_engine.vector_service.index_dataset(dataset_id, dataset_info, embedding)
+            
+            if success:
+                logger.info(f"✅ 数据集 {dataset_id} ({dataset.get('name')}) 已同步到ES ({operation})")
+            else:
+                logger.error(f"❌ 数据集 {dataset_id} ES索引操作失败 ({operation})")
+            
+            return success
+            
+        except Exception as es_e:
+            logger.error(f"❌ ES索引操作异常: {es_e}")
+            logger.error(f"❌ ES错误详情: {type(es_e).__name__}: {str(es_e)}")
+            return False
         
     except Exception as e:
         logger.error(f"❌ 数据集 {dataset_id} 同步到ES异常: {e}")
+        logger.error(f"❌ 异常详情: {type(e).__name__}: {str(e)}")
+        import traceback
+        logger.error(f"❌ 堆栈跟踪: {traceback.format_exc()}")
         return False
 
 def sanitize_filename(filename: str) -> str:

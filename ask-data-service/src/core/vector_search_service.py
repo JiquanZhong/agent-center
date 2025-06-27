@@ -200,6 +200,25 @@ class VectorSearchService:
             bool: 是否成功
         """
         try:
+            self.logger.debug(f"📝 开始索引数据集 {dataset_id}: {dataset_info.get('name', 'Unknown')}")
+            
+            # 验证embedding
+            if embedding is None:
+                self.logger.error(f"❌ 数据集 {dataset_id} 的embedding为None")
+                return False
+            
+            # 转换embedding格式
+            try:
+                if isinstance(embedding, np.ndarray):
+                    embedding_list = embedding.tolist()
+                    self.logger.debug(f"📊 Embedding维度: {embedding.shape}")
+                else:
+                    embedding_list = embedding
+                    self.logger.debug(f"📊 Embedding类型: {type(embedding)}, 长度: {len(embedding) if hasattr(embedding, '__len__') else 'unknown'}")
+            except Exception as emb_convert_e:
+                self.logger.error(f"❌ Embedding格式转换失败: {emb_convert_e}")
+                return False
+            
             doc = {
                 "dataset_id": dataset_id,
                 "name": dataset_info.get("name", ""),
@@ -211,22 +230,46 @@ class VectorSearchService:
                 "tree_node_id": dataset_info.get("tree_node_id", ""),
                 "file_path": dataset_info.get("file_path", ""),
                 "status": dataset_info.get("status", "active"),
-                "embedding": embedding.tolist() if isinstance(embedding, np.ndarray) else embedding,
+                "embedding": embedding_list,
                 "created_at": dataset_info.get("created_at"),
                 "updated_at": dataset_info.get("updated_at")
             }
             
+            self.logger.debug(f"📋 构建文档完成，字段数: {len(doc)}")
+            
+            # 检查ES连接状态
+            try:
+                es_info = self.es.info()
+                self.logger.debug(f"🔗 ES连接正常: {es_info['version']['number']}")
+            except Exception as conn_e:
+                self.logger.error(f"❌ ES连接失败: {conn_e}")
+                return False
+            
+            # 执行索引操作
+            self.logger.debug(f"📝 执行ES索引操作...")
             response = self.es.index(
                 index=self.index_name,
                 id=dataset_id,
                 document=doc
             )
             
-            self.logger.debug(f"数据集索引成功: {dataset_id}")
+            self.logger.debug(f"✅ 数据集索引成功: {dataset_id}, ES响应: {response.get('result', 'unknown')}")
             return True
             
         except Exception as e:
-            self.logger.error(f"数据集索引失败 {dataset_id}: {e}")
+            self.logger.error(f"❌ 数据集索引失败 {dataset_id}: {e}")
+            self.logger.error(f"❌ 索引错误详情: {type(e).__name__}: {str(e)}")
+            
+            # 特殊错误处理
+            if "ConnectionError" in str(type(e)):
+                self.logger.error("❌ ES连接错误，请检查Elasticsearch服务状态")
+            elif "RequestError" in str(type(e)):
+                self.logger.error("❌ ES请求错误，可能是索引映射或数据格式问题")
+            elif "timeout" in str(e).lower():
+                self.logger.error("❌ ES操作超时，请检查网络连接和ES性能")
+            
+            import traceback
+            self.logger.error(f"❌ 索引错误堆栈: {traceback.format_exc()}")
             return False
     
     def bulk_index_datasets(self, datasets: List[Dict[str, Any]]) -> int:
