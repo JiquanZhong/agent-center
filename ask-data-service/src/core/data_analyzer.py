@@ -735,7 +735,21 @@ class DataAnalyzer:
             if not pd.api.types.is_datetime64_any_dtype(df[column]):
                 # 如果不是datetime类型，先尝试转换
                 try:
-                    df[column] = pd.to_datetime(df[column], errors='coerce')
+                    # 检查是否是年份数据（4位数字或浮点数年份）
+                    sample_value = df[column].dropna().iloc[0] if not df[column].dropna().empty else None
+                    if sample_value is not None:
+                        # 如果是数字类型且看起来像年份（1900-2100之间）
+                        if pd.api.types.is_numeric_dtype(df[column]):
+                            numeric_values = pd.to_numeric(df[column], errors='coerce')
+                            if numeric_values.dropna().apply(lambda x: 1900 <= x <= 2100).all():
+                                # 将年份转换为日期（年份的1月1日）
+                                df[column] = pd.to_datetime(numeric_values.astype(int), format='%Y', errors='coerce')
+                            else:
+                                df[column] = pd.to_datetime(df[column], errors='coerce')
+                        else:
+                            df[column] = pd.to_datetime(df[column], errors='coerce')
+                    else:
+                        df[column] = pd.to_datetime(df[column], errors='coerce')
                 except:
                     logger = get_logger(__name__)
                     logger.warning(f"⚠️ 无法将列 {column} 转换为datetime类型")
