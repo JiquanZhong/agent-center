@@ -45,8 +45,10 @@ class DataAnalyzer:
         # 分析日期列  
         date_columns = []
         for col in raw_df.columns:
-            # 检查是否为datetime类型或明确的日期列名
-            if pd.api.types.is_datetime64_any_dtype(raw_df[col]) or 'date' in col.lower():
+            # 检查是否为datetime类型、明确的日期列名或特定的年份字段
+            if (pd.api.types.is_datetime64_any_dtype(raw_df[col]) or 
+                'date' in col.lower() or 
+                col == 'SJNF'):  # 特别识别SJNF（数据年份）字段
                 date_columns.append(col)
                 # 获取日期范围
                 info[f"{col}_range"] = f"{raw_df[col].min()} 到 {raw_df[col].max()}"
@@ -606,7 +608,6 @@ class DataAnalyzer:
         context = f"""
 数据结构信息：
 - 数据规模：{data_info['shape'][0]}行，{data_info['shape'][1]}列
-- 列名：{', '.join(data_info['columns'])}
 - 日期列：{', '.join(data_info['date_columns'])} ({data_info.get(data_info['date_columns'][0] + '_range', '未知范围') if data_info['date_columns'] else '无'})
 - 分类列信息：{json.dumps(data_info['categorical_info'], ensure_ascii=False, indent=2)}
 {geo_context}
@@ -698,6 +699,8 @@ class DataAnalyzer:
                     result_df = DataAnalyzer._apply_strip(result_df, params)
                 elif trans_type == 'fill_na':
                     result_df = DataAnalyzer._apply_fill_na(result_df, params)
+                elif trans_type == 'format_date':
+                    result_df = DataAnalyzer._apply_format_date(result_df, params)
                 # 可以继续添加更多转换类型的支持
                 else:
                     logger.warning(f"⚠️ 暂不支持的转换类型: {trans_type}")
@@ -717,6 +720,29 @@ class DataAnalyzer:
         
         if column in df.columns:
             df[new_column] = df[column].astype(str).str.extract(pattern, expand=False)
+        
+        return df
+    
+    @staticmethod
+    def _apply_format_date(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
+        """应用format_date转换"""
+        column = params['column']
+        format_str = params.get('format', '%Y-%m-%d')
+        new_column = params.get('new_column', column)  # 默认覆盖原列，除非指定新列名
+        
+        if column in df.columns:
+            # 确保列是datetime类型
+            if not pd.api.types.is_datetime64_any_dtype(df[column]):
+                # 如果不是datetime类型，先尝试转换
+                try:
+                    df[column] = pd.to_datetime(df[column], errors='coerce')
+                except:
+                    logger = get_logger(__name__)
+                    logger.warning(f"⚠️ 无法将列 {column} 转换为datetime类型")
+                    return df
+            
+            # 应用日期格式化
+            df[new_column] = df[column].dt.strftime(format_str)
         
         return df
     
