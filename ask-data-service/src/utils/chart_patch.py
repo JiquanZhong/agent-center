@@ -23,7 +23,7 @@ def patch_chart_filename():
         
         def custom_replace_output_filenames_with_temp_chart(self, code: str) -> str:
             """
-            自定义的图表文件名替换方法
+            自定义的图表文件名替换方法，同时修复变量引用错误
             """
             # 检查是否设置了自定义的 query_id
             query_id = os.environ.get('CURRENT_QUERY_ID')
@@ -33,12 +33,54 @@ def patch_chart_filename():
                 from pandasai.constants import DEFAULT_CHART_DIRECTORY
                 chart_path = os.path.join(DEFAULT_CHART_DIRECTORY, f"{query_id}.png")
                 chart_path = chart_path.replace("\\", "\\\\")
-                logger.debug(f"🎨 使用自定义图表文件名: {chart_path}")
-                return re.sub(
+                logger.info(f"🎨 使用自定义图表文件名: {chart_path}")
+                
+                # 替换代码中的图表文件名
+                updated_code = re.sub(
                     r"""(['"])([^'"]*\.png)\1""",
                     lambda m: f"{m.group(1)}{chart_path}{m.group(1)}",
                     code,
                 )
+                
+                # 修复f-string中的变量引用错误
+                # 查找所有可能的文件名变量（如 plot_filename, chart_filename 等）
+                filename_vars = re.findall(r'(\w*(?:plot|chart|file)(?:name|_name)?)\s*=\s*["\'][^"\']*\.png["\']', updated_code)
+                
+                if filename_vars:
+                    # 获取第一个文件名变量
+                    filename_var = filename_vars[0]
+                    logger.info(f"🔧 检测到文件名变量: {filename_var}")
+                    
+                    # 修复f-string中错误的变量引用
+                    # 1. 匹配形如 {some_filename.png} 的模式，应该替换为 {filename_var}
+                    pattern1 = r'\{([^{}]*\.png)\}'
+                    def fix_filename_ref(match):
+                        original_ref = match.group(1)
+                        # 如果引用的不是变量名而是直接的文件名，替换为正确的变量名
+                        if '.' in original_ref and original_ref != filename_var:
+                            logger.info(f"🔧 修复文件名引用: {{{original_ref}}} -> {{{filename_var}}}")
+                            return f"{{{filename_var}}}"
+                        return match.group(0)
+                    
+                    updated_code = re.sub(pattern1, fix_filename_ref, updated_code)
+                    
+                    # 2. 修复形如 {filename_without_extension.png} 的模式
+                    # 特别处理类似 {qingyang_land_area.png} 的情况
+                    pattern2 = r'\{([a-zA-Z_][a-zA-Z0-9_]*\.png)\}'
+                    def fix_undefined_var(match):
+                        var_ref = match.group(1)
+                        var_name = var_ref.replace('.png', '')
+                        # 检查这个变量名是否在代码中定义过
+                        # 使用正则表达式检查是否有 var_name = 的赋值语句
+                        var_definition_pattern = rf'\b{re.escape(var_name)}\s*='
+                        if not re.search(var_definition_pattern, updated_code) and var_name != filename_var:
+                            logger.info(f"🔧 修复未定义变量引用: {{{var_ref}}} -> {{{filename_var}}}")
+                            return f"{{{filename_var}}}"
+                        return match.group(0)
+                    
+                    updated_code = re.sub(pattern2, fix_undefined_var, updated_code)
+                
+                return updated_code
             else:
                 # 使用原始方法
                 logger.debug("🎨 使用默认图表文件名生成方法")
