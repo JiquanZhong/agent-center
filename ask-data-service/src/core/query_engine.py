@@ -217,7 +217,7 @@ class QueryEngine:
         context = self.analyzer.generate_context(self.data_info)
         
         # 构建完整的查询指令
-        enhanced_query = f"""请用中文回答以下问题，一定要给出文本结果，里面有你对问题的总结，并根据结果生成图表：{question}
+        enhanced_query = f"""一定要给出文本结果，并根据结果生成图表：{question}
 
 {context}
 
