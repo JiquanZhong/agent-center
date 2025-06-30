@@ -24,8 +24,9 @@ class TransformationRuleManager:
         
         # 设置默认配置文件路径
         if rules_config_path is None:
-            current_dir = os.path.dirname(__file__)
-            rules_config_path = os.path.join(current_dir, "transformation_rules.json")
+            # current_dir = os.path.dirname(__file__)
+            # rules_config_path = os.path.join(current_dir, "transformation_rules.json")
+            rules_config_path = "./json_config/transformation_rules.json"
         
         self.rules_config_path = rules_config_path
         self.rules = self._load_rules()
