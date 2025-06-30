@@ -600,12 +600,7 @@ class DataAnalyzer:
   * 查询省级：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 2) = '36'
   * 查询市级：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 4) = '3607'
   * 查询县级：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 6) = '360726'
-  * 查询村级：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 12) = '前12位代码'
   
-- 常用查询示例：
-  * 查询江西省数据：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 2) = '36'
-  * 查询赣州市数据：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 4) = '3607'
-  * 查询安远县数据：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 6) = '360726'
 """
         
         context = f"""

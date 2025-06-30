@@ -69,7 +69,6 @@ def _enhance_query_for_string(original_query):
     2. 年份：SJNF=2019
     3. 地类类型：一级地类名称='耕地'
     4. 面积计算：对TBMJ(图斑面积)列求和
-10. 如果需要画图，不要在文本结果中添加生成的图片的名称。比如：已生成饼图展示各类图斑占比情况，图表文件名为：huangdao_pie_chart.png
 
 
 """
