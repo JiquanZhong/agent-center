@@ -31,8 +31,7 @@ services:
     ports:
       - "${ASK_DATA_PORT}:8000"
     volumes:
-      - ./log/ask-data-service/log:/app/log
-      - ./log/ask-data-service/pandasai.log:/app/pandasai.log
+      - ./log/ask-data-service/logs:/app/logs
       - ./volumes/ask-data-service/datasets:/app/datasets
       - ./volumes/ask-data-service/exports:/app/exports
     env_file:
@@ -79,7 +78,6 @@ services:
     ports:
       - "${FRONTEND_PORT}:80"
     volumes:
-      - ./update-config.sh:/tmp/update-config.sh:ro
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./config/nginx/mime.types:/etc/nginx/mime.types:ro
       - ./web/demo:/usr/share/nginx/html/ai_center
