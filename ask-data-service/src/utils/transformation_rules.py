@@ -26,7 +26,7 @@ class TransformationRuleManager:
         if rules_config_path is None:
             # current_dir = os.path.dirname(__file__)
             # rules_config_path = os.path.join(current_dir, "transformation_rules.json")
-            rules_config_path = "./json_config/transformation_rules.json"
+            rules_config_path = "./json-config/transformation_rules.json"
         
         self.rules_config_path = rules_config_path
         self.rules = self._load_rules()
