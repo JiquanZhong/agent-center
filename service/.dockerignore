@@ -1,0 +1,25 @@
+# Docker ignore file
+# 忽略不必要的文件，但保留fonts目录
+
+# Git相关
+.git
+.gitignore
+
+# IDE相关
+.idea
+.vscode
+*.iml
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 不要忽略字体目录！
+!fonts/ 

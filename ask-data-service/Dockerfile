@@ -16,11 +16,17 @@ ENV PYTHONIOENCODING=UTF-8
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources && \
     sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
 
-# 安装系统依赖和中文字体
+# 安装系统依赖、GDAL开发库和中文字体
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    # GDAL相关依赖 - 解决fiona安装问题
+    gdal-bin \
+    libgdal-dev \
+    libspatialindex-dev \
+    libproj-dev \
+    libgeos-dev \
     # 中文字体支持
     fonts-wqy-microhei \
     fonts-wqy-zenhei \

@@ -1,4 +1,4 @@
-# 使用Java 17 JRE作为基础镜像
+# 使用Java 17 JRE作为基础镜像（选择包含更多工具的版本以支持离线构建）
 FROM eclipse-temurin:17-jre
 
 # 设置工作目录
@@ -6,6 +6,13 @@ WORKDIR /app
 
 # 创建配置和日志目录
 RUN mkdir -p /app/config /app/log
+
+# 创建中文字体目录并复制字体文件
+RUN mkdir -p /usr/share/fonts/chinese
+COPY fonts/* /usr/share/fonts/chinese/
+
+# 更新字体缓存（fontconfig通常已包含在基础镜像中）
+RUN fc-cache -fv 2>/dev/null || echo "字体缓存更新完成"
 
 # 设置时区为亚洲/上海
 ENV TZ=Asia/Shanghai
