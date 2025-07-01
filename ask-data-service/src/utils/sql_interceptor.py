@@ -17,7 +17,7 @@ class SQLInterceptor:
     """SQL执行拦截器类"""
     
     def __init__(self):
-        self.current_query_sqls: List[Dict[str, Any]] = []
+        self.current_sql: Optional[str] = None
         self.original_add_to_env = None
         self._enabled = False
         
@@ -77,29 +77,27 @@ class SQLInterceptor:
             logger.error(f"停用SQL拦截器失败: {e}")
             
     def _record_sql(self, sql_query: str):
-        """记录SQL查询"""
-        sql_record = {
-            "sql": sql_query.strip(),
-            "timestamp": datetime.now().isoformat(),
-            "execution_order": len(self.current_query_sqls) + 1
-        }
-        
-        self.current_query_sqls.append(sql_record)
-        logger.debug(f"🔍 拦截到SQL查询 #{sql_record['execution_order']}: {sql_query[:100]}...")
+        """记录SQL查询（只保存最新的）"""
+        self.current_sql = sql_query.strip()
+        logger.debug(f"🔍 拦截到SQL查询: {sql_query[:100]}...")
         
     def get_current_query_sqls(self) -> List[Dict[str, Any]]:
-        """获取当前查询执行的SQL列表"""
-        return self.current_query_sqls.copy()
+        """获取当前查询执行的SQL列表（为了保持API兼容性）"""
+        if self.current_sql:
+            return [{
+                "sql": self.current_sql,
+                "timestamp": datetime.now().isoformat(),
+                "execution_order": 1
+            }]
+        return []
         
     def get_latest_sql(self) -> Optional[str]:
         """获取最新执行的SQL"""
-        if self.current_query_sqls:
-            return self.current_query_sqls[-1]["sql"]
-        return None
+        return self.current_sql
         
     def clear_current_query(self):
         """清空当前查询的SQL记录"""
-        self.current_query_sqls.clear()
+        self.current_sql = None
         logger.debug("📝 当前查询SQL记录已清空")
         
     def is_enabled(self) -> bool:

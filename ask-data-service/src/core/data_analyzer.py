@@ -596,7 +596,6 @@ class DataAnalyzer:
   * 前2位：省级代码（36 = 江西省）
   * 前4位：市级代码（3607 = 赣州市）
   * 前6位：县级代码
-  * 前12位：村级代码
 
 - 查询语法示例：
   * 查询省级：WHERE SUBSTRING(CAST(ZLDWDM AS VARCHAR), 1, 2) = '36'

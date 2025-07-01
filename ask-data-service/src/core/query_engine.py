@@ -247,11 +247,9 @@ class QueryEngine:
                 self.logger.debug(f"📋 响应内容: {str(response)[:200]}...")
                 
                 # 记录执行的SQL
-                executed_sqls = self.sql_interceptor.get_current_query_sqls()
-                if executed_sqls:
-                    self.logger.debug(f"🗂️ 执行了 {len(executed_sqls)} 个SQL查询:")
-                    for i, sql_record in enumerate(executed_sqls, 1):
-                        self.logger.info(f"  SQL #{i}: {sql_record['sql']}")
+                executed_sql = self.sql_interceptor.get_latest_sql()
+                if executed_sql:
+                    self.logger.info(f"🗂️ 执行的SQL查询: {executed_sql}")
                 else:
                     self.logger.info("📝 未检测到SQL查询执行")
             
@@ -311,16 +309,7 @@ class QueryEngine:
     
     def get_executed_sqls_string(self):
         """获取当前查询执行的SQL查询字符串"""
-        sqls = self.sql_interceptor.get_current_query_sqls()
-        if not sqls:
-            return None
-        
-        # 如果只有一个SQL，直接返回
-        if len(sqls) == 1:
-            return sqls[0]["sql"]
-        
-        # 如果有多个SQL，用换行符连接
-        return "\n\n".join([f"-- Query {sql['execution_order']}\n{sql['sql']}" for sql in sqls])
+        return self.sql_interceptor.get_latest_sql()
     
     def get_latest_sql(self):
         """获取最新执行的SQL"""
