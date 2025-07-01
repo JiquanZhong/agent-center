@@ -49,4 +49,7 @@ public class WorkflowDocAgg {
      */
     @TableField(value = "create_time")
     private Date createTime;
+
+    @TableField(value = "type")
+    private String type;
 }

@@ -142,7 +142,7 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         
         // 3. 使用MapStruct将实体转换为DTO
         List<WorkflowChunkDTO> chunkDTOs = new ArrayList<>();
-        Map<String, String> docPreviewUrlMap = null;
+        Map<String, String> docPreviewUrlMap = new HashMap<>();
         if (!CollectionUtils.isEmpty(chunks)) {
             // 提取所有文档ID
             Set<String> documentIds = chunks.stream()
@@ -169,6 +169,17 @@ public class KnowledgeFilePreviewServiceImpl implements KnowledgeFilePreviewServ
         // 4. 处理文档聚合数据
         List<WorkflowDocAggDTO> docAggDTOs = new ArrayList<>();
         if (!CollectionUtils.isEmpty(docAggs)) {
+            // 如果chunks为空导致docPreviewUrlMap为空，则需要为docAggs生成预览URL
+            if (docPreviewUrlMap.isEmpty()) {
+                // 提取所有文档ID
+                Set<String> documentIds = docAggs.stream()
+                        .map(WorkflowDocAgg::getDocId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+                
+                // 生成文档预览URL映射
+                docPreviewUrlMap = generatePreviewUrls(documentIds);
+            }
             
             // 转换并设置预览URL
             for (WorkflowDocAgg docAgg : docAggs) {

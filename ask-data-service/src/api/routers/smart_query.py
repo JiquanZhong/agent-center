@@ -218,6 +218,20 @@ async def smart_query(
                             "sql_queries": query_result.get("sql_queries")
                         })
                         
+                        # 记录查询工作流到数据库
+                        try:
+                            workflow_recorded = db.record_query_workflow(
+                                work_flow_run_id=query_id,
+                                query_text=request.question,
+                                dataset_id=best_match.dataset_id
+                            )
+                            if workflow_recorded:
+                                logger.info(f"✅ 查询工作流记录成功: {query_id} -> 数据集 {best_match.dataset_id}")
+                            else:
+                                logger.warning(f"⚠️ 查询工作流记录失败: {query_id}")
+                        except Exception as wf_e:
+                            logger.error(f"❌ 记录查询工作流异常: {wf_e}")
+                        
                         message = f"查询执行成功"
                         
                     except Exception as e:
@@ -451,5 +465,7 @@ async def get_embedding_info(
             error=str(e),
             timestamp=datetime.utcnow().isoformat()
         )
+
+
 
  

@@ -183,6 +183,33 @@ class SchemaDatabase:
                 )
                 ''')
             
+                # RAG工作流运行主表
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS workflow_run (
+                    id BIGSERIAL PRIMARY KEY,
+                    work_flow_run_id VARCHAR(64) NOT NULL,
+                    code INTEGER,
+                    message VARCHAR(255),
+                    total INTEGER,
+                    query_text TEXT,
+                    create_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    update_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                )
+                ''')
+                
+                # RAG工作流文档聚合表
+                cursor.execute('''
+                CREATE TABLE IF NOT EXISTS workflow_doc_agg (
+                    id BIGSERIAL PRIMARY KEY,
+                    work_flow_run_id VARCHAR(64) NOT NULL,
+                    doc_id VARCHAR(64),
+                    doc_name VARCHAR(255),
+                    count INTEGER,
+                    create_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    type VARCHAR DEFAULT 'doc'
+                )
+                ''')
+                
                 # 创建索引
                 indexes = [
                     'CREATE INDEX IF NOT EXISTS idx_ask_data_datasets_status ON ask_data_datasets(status)',
@@ -191,6 +218,7 @@ class SchemaDatabase:
                     'CREATE INDEX IF NOT EXISTS idx_ask_data_dataset_transformations_dataset_id ON ask_data_dataset_transformations(dataset_id)',
                     'CREATE INDEX IF NOT EXISTS idx_ask_data_dataset_transformations_type ON ask_data_dataset_transformations(transformation_type)',
                     'CREATE INDEX IF NOT EXISTS idx_ask_data_dataset_transformations_enabled ON ask_data_dataset_transformations(is_enabled)',
+                    'CREATE INDEX IF NOT EXISTS idx_doc_agg_workflow_run ON workflow_doc_agg(work_flow_run_id)',
                 ]
                 
                 for index in indexes:
@@ -2582,4 +2610,136 @@ class SchemaDatabase:
             if cursor:
                 cursor.close()
             if conn:
-                conn.close() 
+                conn.close()
+    
+    # ====================== Workflow 相关方法 ======================
+    
+    def create_workflow_run(self, work_flow_run_id: str, query_text: str, total: int = 1, 
+                           code: int = 200, message: str = "success") -> bool:
+        """
+        创建工作流运行记录
+        
+        Args:
+            work_flow_run_id: 工作流运行ID
+            query_text: 查询文本
+            total: 结果总数
+            code: 响应码
+            message: 响应消息
+            
+        Returns:
+            bool: 是否创建成功
+        """
+        with LogContext(self.logger, f"创建workflow_run记录: {work_flow_run_id}"):
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            try:
+                cursor.execute('''
+                    INSERT INTO workflow_run (
+                        work_flow_run_id, code, message, total, query_text
+                    ) VALUES (%s, %s, %s, %s, %s)
+                ''', (work_flow_run_id, code, message, total, query_text))
+                
+                conn.commit()
+                self.logger.info(f"✅ 创建workflow_run记录成功: {work_flow_run_id}")
+                return True
+                
+            except Exception as e:
+                conn.rollback()
+                self.logger.error(f"❌ 创建workflow_run记录失败: {e}")
+                return False
+            finally:
+                cursor.close()
+                conn.close()
+    
+    def create_workflow_doc_agg(self, work_flow_run_id: str, doc_id: str, doc_name: str, 
+                               count: int = 1, type: str = "shp") -> bool:
+        """
+        创建工作流文档聚合记录
+        
+        Args:
+            work_flow_run_id: 工作流运行ID
+            doc_id: 文档ID（数据集ID）
+            doc_name: 文档名称（数据集原始文件名）
+            count: 文档出现次数
+            type: 类型（doc或shp）
+            
+        Returns:
+            bool: 是否创建成功
+        """
+        with LogContext(self.logger, f"创建workflow_doc_agg记录: {work_flow_run_id}/{doc_id}"):
+            conn = self._get_connection()
+            cursor = conn.cursor()
+            
+            try:
+                cursor.execute('''
+                    INSERT INTO workflow_doc_agg (
+                        work_flow_run_id, doc_id, doc_name, count, type
+                    ) VALUES (%s, %s, %s, %s, %s)
+                ''', (work_flow_run_id, doc_id, doc_name, count, type))
+                
+                conn.commit()
+                self.logger.info(f"✅ 创建workflow_doc_agg记录成功: {work_flow_run_id}/{doc_id}")
+                return True
+                
+            except Exception as e:
+                conn.rollback()
+                self.logger.error(f"❌ 创建workflow_doc_agg记录失败: {e}")
+                return False
+            finally:
+                cursor.close()
+                conn.close()
+    
+
+    
+    def record_query_workflow(self, work_flow_run_id: str, query_text: str, dataset_id: str) -> bool:
+        """
+        记录查询工作流（同时创建workflow_run和workflow_doc_agg记录）
+        
+        Args:
+            work_flow_run_id: 工作流运行ID
+            query_text: 查询文本
+            dataset_id: 数据集ID
+            
+        Returns:
+            bool: 是否记录成功
+        """
+        with LogContext(self.logger, f"记录查询工作流: {work_flow_run_id}"):
+            try:
+                # 1. 获取数据集信息
+                dataset_info = self.get_dataset_by_id(int(dataset_id))
+                if not dataset_info:
+                    self.logger.error(f"未找到数据集: {dataset_id}")
+                    return False
+                
+                # 2. 创建workflow_run记录
+                success_run = self.create_workflow_run(
+                    work_flow_run_id=work_flow_run_id,
+                    query_text=query_text,
+                    total=1,
+                    code=200,
+                    message="success"
+                )
+                
+                if not success_run:
+                    return False
+                
+                # 3. 创建workflow_doc_agg记录
+                doc_name = dataset_info.get('original_filename', dataset_info.get('name', 'unknown'))
+                success_agg = self.create_workflow_doc_agg(
+                    work_flow_run_id=work_flow_run_id,
+                    doc_id=str(dataset_id),
+                    doc_name=doc_name,
+                    count=1,
+                    type="shp"
+                )
+                
+                if success_agg:
+                    self.logger.info(f"✅ 查询工作流记录完成: {work_flow_run_id}")
+                    return True
+                else:
+                    return False
+                    
+            except Exception as e:
+                self.logger.error(f"❌ 记录查询工作流失败: {e}")
+                return False
