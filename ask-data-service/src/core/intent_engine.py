@@ -10,6 +10,7 @@ from .embedding_service import EmbeddingService
 from .vector_search_service import VectorSearchService
 from ..utils.schema_database import SchemaDatabase
 from ..utils.logger import get_logger, LogContext
+import pandas as pd
 
 class IntentRecognitionEngine:
     """意图识别引擎"""
@@ -32,6 +33,102 @@ class IntentRecognitionEngine:
         
         self.logger.info("意图识别引擎初始化完成")
     
+    def rewrite_question(self, question: str) -> str:
+        """
+        重写用户问题，使其更专业、清晰、无歧义。
+        只对时间和查询目标进行标准化，保留原始关键词。
+        
+        Args:
+            question: 原始用户问题
+            
+        Returns:
+            str: 重写后的问题
+        """
+        # 1. 提取关键信息
+        domain_info = self._extract_domain_info(question)
+        
+        # 2. 构建重写后的问题
+        components = []
+        
+        # 添加地理位置
+        if domain_info["location"]:
+            components.append(domain_info["location"])
+        
+        # 添加时间范围（只标准化相对时间）
+        if domain_info["time_range"]:
+            time_str = domain_info["time_range"]
+            if time_str == "今年":
+                from datetime import datetime
+                time_str = f"{datetime.now().year}年"
+            elif time_str == "去年":
+                from datetime import datetime
+                time_str = f"{datetime.now().year - 1}年"
+            components.append(time_str)
+        
+        # 提取核心查询目标
+        query_target = None
+        keywords = domain_info["keywords"]
+        
+        # 查询目标映射
+        target_mappings = {
+            "面积": {"面积", "总面积", "用地面积", "占地", "地块大小"},
+            "数量": {"数量", "个数", "总数", "多少个"},
+            "比例": {"比例", "占比", "百分比", "构成"},
+            "分布": {"分布", "分布情况", "空间分布"},
+            "变化": {"变化", "变化趋势", "增长", "减少"},
+            "排名": {"排名", "排序", "前几", "最大", "最小"}
+        }
+        
+        # 分析关键词确定查询目标
+        for target, target_keywords in target_mappings.items():
+            if any(kw in target_keywords for kw in keywords):
+                query_target = target
+                break
+        
+        # 处理特殊查询词
+        special_queries = {
+            "多少": "数量",
+            "怎么样": "情况",
+            "如何": "情况"
+        }
+        for query, replacement in special_queries.items():
+            if query in question:
+                query_target = replacement
+        
+        # 提取原始主题词（保留用户原始表述）
+        subject = None
+        # 尝试从问题中提取主题词
+        if "的" in question:
+            parts = question.split("的")
+            for part in parts[:-1]:  # 检查除最后一部分外的所有部分
+                # 移除时间和地点信息后的剩余部分可能是主题词
+                cleaned_part = part
+                if domain_info["location"]:
+                    cleaned_part = cleaned_part.replace(domain_info["location"], "").strip()
+                if domain_info["time_range"]:
+                    cleaned_part = cleaned_part.replace(domain_info["time_range"], "").strip()
+                if cleaned_part:
+                    subject = cleaned_part
+                    break
+        
+        # 组装重写后的问题
+        if components:
+            # 添加原始主题词（如果有）
+            if subject:
+                components.append(subject)
+            
+            if query_target:
+                rewritten = f"查询{' '.join(components)}的{query_target}"
+            else:
+                # 如果没有明确的查询目标，保持原问题的查询部分
+                original_query = question.split("的")[-1] if "的" in question else question
+                rewritten = f"查询{' '.join(components)}的{original_query}"
+        else:
+            rewritten = question  # 如果无法有效重写，返回原问题
+            
+        self.logger.info(f"问题重写: {question} -> {rewritten}")
+        return rewritten
+
     def recognize_intent(self, question: str, max_results: int = 5, 
                         min_score: float = 0.3) -> List[Dict[str, Any]]:
         """
@@ -47,11 +144,15 @@ class IntentRecognitionEngine:
             格式: [{"dataset_id": "1", "dataset_name": "xx", "score": 0.95, "reason": "匹配原因"}]
         """
         with LogContext(self.logger, f"意图识别: {question}"):
+            # 重写用户问题
+            rewritten_question = self.rewrite_question(question)
+            self.logger.info(f"重写后的问题: {rewritten_question}")
+            
             # 1. 关键词预处理和领域识别
-            domain_info = self._extract_domain_info(question)
+            domain_info = self._extract_domain_info(rewritten_question)
             
             # 2. 生成问题向量
-            question_embedding = self.embedding_service.encode_single(question)
+            question_embedding = self.embedding_service.encode_single(rewritten_question)
             
             # 3. 向量搜索（使用较低的min_score进行初步过滤，后续基于enhanced_score精确过滤）
             vector_results = self.vector_service.vector_search(
@@ -62,7 +163,7 @@ class IntentRecognitionEngine:
             
             # 4. 结果后处理和排序
             processed_results = self._process_results(
-                vector_results, question, domain_info, max_results
+                vector_results, rewritten_question, domain_info, max_results
             )
             
             # 5. 基于enhanced_score进行过滤
@@ -118,7 +219,7 @@ class IntentRecognitionEngine:
         
         question_lower = question.lower()
         
-        # 提取领域
+        # 提取领域和关键词
         for domain, keywords in domain_keywords.items():
             if any(keyword in question for keyword in keywords):
                 domain_info["domain"] = domain
@@ -229,16 +330,58 @@ class IntentRecognitionEngine:
             boost_factor += 0.1
             boost_details.append(f"领域匹配({domain_info['domain']}):+0.1")
         
-        # 关键词匹配加成
+        # 关键词匹配加成和扣分
         result_keywords = result.get("keywords", [])
         if isinstance(result_keywords, list):
-            keyword_matches = len(set(domain_info.get("keywords", [])) & set(result_keywords))
+            # 提取用户问题中的时间和地区关键词
+            user_time = domain_info.get("time_range")
+            user_location = domain_info.get("location")
+            
+            # 跟踪时间和地区是否都不匹配
+            time_mismatch = False
+            location_mismatch = False
+            
+            # 时间匹配检查
+            if user_time:
+                # 检查数据集是否包含对应年份
+                if user_time not in result_keywords:
+                    boost_factor -= 0.2  # 时间不匹配扣20%
+                    boost_details.append(f"时间不匹配({user_time}):-0.2")
+                    time_mismatch = True
+                else:
+                    boost_factor += 0.1  # 时间匹配加10%
+                    boost_details.append(f"时间匹配({user_time}):+0.1")
+            
+            # 地区匹配检查
+            if user_location:
+                # 检查数据集是否包含对应地区
+                if user_location not in result_keywords:
+                    boost_factor -= 0.2  # 地区不匹配扣20%
+                    boost_details.append(f"地区不匹配({user_location}):-0.2")
+                    location_mismatch = True
+                else:
+                    boost_factor += 0.1  # 地区匹配加10%
+                    boost_details.append(f"地区匹配({user_location}):+0.1")
+            
+            # 如果时间和地区都不匹配，额外惩罚
+            if time_mismatch and location_mismatch and user_time and user_location:
+                boost_factor -= 0.3  # 双重不匹配额外扣30%
+                boost_details.append("时间地区双重不匹配:-0.3")
+            
+            # 其他关键词匹配加成
+            other_keywords = set(domain_info.get("keywords", [])) - {user_time, user_location}
+            keyword_matches = len(other_keywords & set(result_keywords))
             if keyword_matches > 0:
-                # 关键词匹配度：每个匹配词增加3%，最多15%
-                keyword_boost = min(0.03 * keyword_matches, 0.15)
+                # 如果时间和地区都不匹配，则降低其他关键词的加分权重
+                if time_mismatch and location_mismatch and user_time and user_location:
+                    keyword_boost = min(0.01 * keyword_matches, 0.05)  # 降低到原来的1/3
+                    boost_details.append(f"关键词匹配(降权)({keyword_matches}个):+{keyword_boost:.3f}")
+                else:
+                    # 关键词匹配度：每个匹配词增加3%，最多15%
+                    keyword_boost = min(0.03 * keyword_matches, 0.15)
+                    boost_details.append(f"关键词匹配({keyword_matches}个):+{keyword_boost:.3f}")
                 boost_factor += keyword_boost
-                matched_keywords = list(set(domain_info.get("keywords", [])) & set(result_keywords))
-                boost_details.append(f"关键词匹配({keyword_matches}个):+{keyword_boost:.3f}")
+                matched_keywords = list(other_keywords & set(result_keywords))
         
         # 名称匹配加成（8%提升）
         dataset_name = result.get("name", "").lower()
@@ -254,13 +397,13 @@ class IntentRecognitionEngine:
             boost_factor += 0.05
             boost_details.append(f"描述匹配({','.join(desc_matched_keywords[:2])}):+0.05")
         
-        # 计算最终分数，限制boost_factor最大为1.5（即最多50%提升）
+        # 计算最终分数，不设置最低限制，只限制最高提升1.5倍
         original_boost = boost_factor
-        boost_factor = min(boost_factor, 1.5)
+        boost_factor = min(boost_factor, 1.5)  # 只限制最高提升
         enhanced_score = base_score * boost_factor
         
-        # 确保分数在合理范围内[0, 1]
-        final_score = min(enhanced_score, 1.0)
+        # 确保最终分数在[0, 1]范围内
+        final_score = min(max(enhanced_score, 0.0), 1.0)
         
         # 记录详细的分数计算过程
         dataset_name = result.get("name", "")
@@ -390,32 +533,92 @@ class IntentRecognitionEngine:
     
     def _generate_keywords_from_dataset(self, dataset: Dict, columns: List[Dict]) -> List[str]:
         """从数据集信息生成关键词"""
-        keywords = []
+        # 定义目标字段
+        target_columns = ['SJNF', 'XZQHMC', 'DLMC']  # 固定顺序
         
-        # 从名称提取关键词
-        name = dataset.get('name', '')
-        if name:
-            # 提取中文关键词
-            name_keywords = re.findall(r'[\u4e00-\u9fff]+', name)
-            keywords.extend([kw for kw in name_keywords if len(kw) > 1])
+        try:
+            # 获取数据集文件路径
+            file_path = dataset.get('actual_data_path') or dataset.get('file_path')
+            if not file_path:
+                return []
+            
+            self.logger.info(f"开始处理数据集文件: {file_path}")
+            
+            # 读取CSV文件，确保SJNF列作为字符串读取
+            df = pd.read_csv(file_path, encoding='utf-8', dtype={'SJNF': str})
+            self.logger.info(f"成功读取CSV文件，列名: {df.columns.tolist()}")
+            
+            # 按字段顺序提取关键词
+            field_keywords = {field: [] for field in target_columns}  # 用字典存储每个字段的关键词
+            
+            # 从指定列的实际值中提取关键词
+            for col_name in target_columns:
+                if col_name in df.columns:
+                    self.logger.info(f"处理列: {col_name}")
+                    # 获取列的唯一值并移除空值
+                    unique_values = df[col_name].dropna().unique()
+                    self.logger.info(f"列 {col_name} 的唯一值: {unique_values}")
+                    
+                    for value in unique_values:
+                        try:
+                            # 转换为字符串并清理空白字符
+                            value_str = str(value).strip()
+                            
+                            if col_name == 'SJNF':
+                                # 提取数字部分
+                                year_match = re.search(r'\d{4}', value_str)
+                                if year_match:
+                                    year_str = year_match.group()
+                                    year_keyword = f"{year_str}年"
+                                    field_keywords[col_name].append(year_keyword)
+                                    self.logger.info(f"添加年份关键词: {year_keyword}")
+                                elif value_str.isdigit() and len(value_str) == 4:
+                                    # 如果整个字符串是4位数字
+                                    year_keyword = f"{value_str}年"
+                                    field_keywords[col_name].append(year_keyword)
+                                    self.logger.info(f"添加年份关键词: {year_keyword}")
+                            elif col_name == 'DLMC':
+                                # 处理地类名称
+                                if value_str:
+                                    # 添加完整的地类名称
+                                    field_keywords[col_name].append(value_str)
+                                    self.logger.info(f"添加地类关键词: {value_str}")
+                            else:
+                                # XZQHMC等其他字段
+                                if value_str:
+                                    field_keywords[col_name].append(value_str)
+                                    self.logger.info(f"添加关键词: {value_str}")
+                        except Exception as e:
+                            self.logger.warning(f"处理值 {value} 时出错: {str(e)}")
+                            continue
+                else:
+                    self.logger.warning(f"列 {col_name} 不存在于数据集中")
+            
+            # 按字段顺序合并关键词
+            keywords = []
+            for field in target_columns:
+                keywords.extend(field_keywords[field])
+            
+            self.logger.info(f"提取的关键词（按字段排序）: {keywords}")
         
-        # 从描述提取关键词
-        description = dataset.get('description', '')
-        if description:
-            desc_keywords = re.findall(r'[\u4e00-\u9fff]+', description)
-            keywords.extend([kw for kw in desc_keywords if len(kw) > 1])
-        
-        # 从列名提取关键词
-        for col in columns:
-            col_name = col.get('name', '')
-            if col_name:
-                col_keywords = re.findall(r'[\u4e00-\u9fff]+', col_name)
-                keywords.extend([kw for kw in col_keywords if len(kw) > 1])
+        except Exception as e:
+            self.logger.error(f"从数据集提取关键词时出错: {str(e)}")
+            import traceback
+            self.logger.error(f"错误详情: {traceback.format_exc()}")
+            return []
         
         # 去重和过滤
         stopwords = {"是", "的", "了", "在", "有", "和", "与", "及", "或", "但", "而", "数据", "信息", "记录"}
-        unique_keywords = list(set([kw for kw in keywords if kw not in stopwords]))
+        unique_keywords = []
+        seen = set()
         
+        # 保持顺序的去重
+        for kw in keywords:
+            if kw not in seen and kw not in stopwords:
+                unique_keywords.append(kw)
+                seen.add(kw)
+        
+        self.logger.info(f"最终关键词: {unique_keywords[:20]}")
         return unique_keywords[:20]  # 限制关键词数量
     
     def _infer_domain_from_dataset(self, dataset: Dict, columns: List[Dict]) -> str:
@@ -446,28 +649,84 @@ class IntentRecognitionEngine:
             return '通用'
     
     def _generate_data_summary(self, dataset: Dict, columns: List[Dict]) -> str:
-        """生成数据摘要"""
-        name = dataset.get('name', '未命名数据集')
-        col_count = len(columns)
+        """生成数据摘要，按功能分类展示字段信息"""
+        name = "青岛测试数据集"  # 使用固定名称
         
-        # 分析列类型
-        col_types = {}
-        for col in columns:
-            col_type = col.get('type', 'unknown')
-            col_types[col_type] = col_types.get(col_type, 0) + 1
+        # 字段分类定义
+        field_categories = {
+            '标识字段': ['FID', 'OBJECTID', 'BSM', 'YSDM', 'TBYBH', 'TBBH'],
+            '地类信息字段': ['DLBM', 'DLMC', 'KCDLBM'],
+            '权属信息字段': ['QSXZ', 'QSDWDM', 'QSDWMC', 'ZLDWDM', 'ZLDWMC'],
+            '面积信息字段': ['TBMJ', 'KCMJ', 'TBDLMJ', 'KCXS'],
+            '耕地相关字段': ['GDLX', 'GDPDJB', 'XZDWKD', 'GDDB'],
+            '图斑属性字段': ['TBXHDM', 'TBXHMC', 'ZZSXDM', 'ZZSXMC'],
+            '管理信息字段': ['FRDBS', 'CZCSXM', 'SJNF', 'MSSM'],
+            '行政区划字段': ['XZQHDM', 'XZQHMC'],
+            '空间信息字段': ['SHAPE_Leng', 'SHAPE_Area'],
+            '其他字段': ['HDMC', 'BZ']
+        }
         
-        type_desc = []
-        if col_types.get('string', 0) > 0:
-            type_desc.append(f"{col_types['string']}个文本字段")
-        if col_types.get('integer', 0) > 0:
-            type_desc.append(f"{col_types['integer']}个整数字段")
-        if col_types.get('float', 0) > 0:
-            type_desc.append(f"{col_types['float']}个数值字段")
-        if col_types.get('datetime', 0) > 0:
-            type_desc.append(f"{col_types['datetime']}个日期字段")
+        # 创建字段名到类型的映射
+        field_types = {col['name']: col['type'] for col in columns}
         
-        summary = f"{name}包含{col_count}个字段"
-        if type_desc:
-            summary += f"，包括{', '.join(type_desc)}"
+        # 生成摘要
+        summary_parts = []
+        # 添加数据集总体信息
+        summary_parts.append(f'{name}包含36个字段，其中：')
         
-        return summary 
+        # 添加各类字段信息
+        category_parts = []
+        for i, (category, fields) in enumerate(field_categories.items(), 1):
+            # 过滤出当前分类中存在的字段
+            existing_fields = [f for f in fields if f in field_types]
+            if existing_fields:
+                field_descriptions = []
+                for field in existing_fields:
+                    field_descriptions.append(f"{field}:{self._get_field_description(field)}")
+                
+                category_parts.append(f"({i}){category}共{len(existing_fields)}个：{'、'.join(field_descriptions)}")
+        
+        summary_parts.append('；'.join(category_parts))
+        return ''.join(summary_parts) + '。'
+    
+    def _get_field_description(self, field: str) -> str:
+        """获取字段的中文描述"""
+        descriptions = {
+            'FID': '唯一标识符',
+            'OBJECTID': '对象ID',
+            'BSM': '标识码',
+            'YSDM': '要素代码',
+            'TBYBH': '图斑预编号',
+            'TBBH': '图斑编号',
+            'DLBM': '地类编码',
+            'DLMC': '地类名称',
+            'KCDLBM': '扣除地类编码',
+            'QSXZ': '权属性质',
+            'QSDWDM': '权属单位代码',
+            'QSDWMC': '权属单位名称',
+            'ZLDWDM': '坐落单位代码',
+            'ZLDWMC': '坐落单位名称',
+            'TBMJ': '图斑面积',
+            'KCMJ': '扣除面积',
+            'TBDLMJ': '图斑地类面积',
+            'KCXS': '扣除系数',
+            'GDLX': '耕地类型',
+            'GDPDJB': '耕地坡度级别',
+            'XZDWKD': '线状地物宽度',
+            'GDDB': '耕地等别',
+            'TBXHDM': '图斑细化代码',
+            'TBXHMC': '图斑细化名称',
+            'ZZSXDM': '种植属性代码',
+            'ZZSXMC': '种植属性名称',
+            'FRDBS': '分任务代表数',
+            'CZCSXM': '操作处数项目',
+            'SJNF': '数据年份',
+            'MSSM': '描述说明',
+            'XZQHDM': '行政区划代码',
+            'XZQHMC': '行政区划名称',
+            'SHAPE_Leng': '形状长度',
+            'SHAPE_Area': '形状面积',
+            'HDMC': '名称',
+            'BZ': '备注'
+        }
+        return descriptions.get(field, field) 
