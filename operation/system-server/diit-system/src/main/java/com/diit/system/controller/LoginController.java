@@ -2,6 +2,7 @@ package com.diit.system.controller;
 
 import com.diit.common.rest.response.ResponseData;
 import com.diit.system.bean.ChangePasswordRequest;
+import com.diit.system.bean.JWTLoginResponse;
 import com.diit.system.bean.LoginUser;
 import com.diit.system.service.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,8 +18,9 @@ public class LoginController {
     
     @PostMapping("/login")
     public ResponseData login(@RequestBody LoginUser loginUser){
-        String token = loginService.login(loginUser);
-        return ResponseData.ok(token);
+//        String token = loginService.login(loginUser);
+        JWTLoginResponse jwtLoginResponse = loginService.login(loginUser);
+        return ResponseData.ok(jwtLoginResponse);
     }
 
     /**

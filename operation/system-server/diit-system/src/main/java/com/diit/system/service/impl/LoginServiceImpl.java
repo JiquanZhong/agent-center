@@ -13,6 +13,7 @@ import com.diit.system.basic.mapper.UserMapper;
 import com.diit.system.basic.mapper.UserRoleMapper;
 import com.diit.system.basic.service.UserRoleService;
 import com.diit.system.basic.service.UserService;
+import com.diit.system.bean.JWTLoginResponse;
 import com.diit.system.bean.LoginUser;
 import com.diit.system.bean.UserVO;
 import com.diit.system.service.LoginService;
@@ -54,7 +55,7 @@ public class LoginServiceImpl implements LoginService {
     private String SECRET_KEY;
 
     @Override
-    public String login(LoginUser loginUser) {
+    public JWTLoginResponse login(LoginUser loginUser) {
         String loginName = loginUser.getLoginName();
         String password = loginUser.getPassword();
         if(ObjectUtils.isEmpty(loginName) || ObjectUtils.isEmpty(password)){
@@ -84,14 +85,20 @@ public class LoginServiceImpl implements LoginService {
                 userVO.setUserName(user.getName());
                 userVO.setLoginName(user.getLoginName());
                 userVO.setUserRoles(roleName);
-                return Jwts.builder()
+                String jwt = Jwts.builder()
                         .setSubject(JSON.toJSONString(userVO))
                         .setIssuedAt(new Date())
                         .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                         .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
                         .compact();
+
+                JWTLoginResponse jwtLoginResponse = new JWTLoginResponse();
+                jwtLoginResponse.setUser(userVO);
+                jwtLoginResponse.setToken(jwt);
+                return jwtLoginResponse;
             }
         }catch (Exception e) {
+            throw new RuntimeException("用户或密码不正确");
         }
         throw new RuntimeException("用户或密码不正确");
     }

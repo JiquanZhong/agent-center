@@ -10,7 +10,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2WebMvc;
 
 @SpringBootApplication
 @MapperScan({"com.diit.**.mapper"})
-@ComponentScan({"com.diit.base","com.diit.system","com.diit.cache","com.diit.file","com.diit.liquibase","com.diit.encrypt"})
+@ComponentScan({"com.diit.base","com.diit.system","com.diit.cache","com.diit.file","com.diit.encrypt"})
 @EnableSwagger2WebMvc
 @Import({SystemSwaggerConfig.class})
 public class DiitSystemWebApplication {

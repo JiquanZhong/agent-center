@@ -5,11 +5,11 @@ server:
     context-path: /${spring.application.name}
 
 db:
-  ip: 192.9.100.11
-  port: 5433
-  sid: oa
-  username: postgres
-  password: postgres
+  ip: ${POSTGRES_HOST}
+  port: ${POSTGRES_PORT}
+  sid: ${POSTGRES_OPERATION_DB}
+  username: ${POSTGRES_USER}
+  password: ${POSTGRES_PASSWORD}
 
 
 spring:
@@ -19,7 +19,7 @@ spring:
   devtools:
     restart:
       # 热部署开关
-      enabled: true
+      enabled: false
   # 数据库连接
   datasource:
     druid:
