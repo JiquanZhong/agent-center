@@ -152,13 +152,16 @@ class IntentRecognitionEngine:
         
         # 地理位置关键词（增强地理位置识别）
         location_patterns = [
-            r'([^省市县区]+?[省市县区])',  # 省市县区
-            r'([^地区]+?地区)',           # 地区
-            r'([^自治区]+?自治区)',        # 自治区
-            r'([^新区]+?新区)',           # 新区
-            r'([^开发区]+?开发区)',        # 开发区
-            r'([^园区]+?园区)',           # 园区
-            r'([^乡镇]+?[乡镇])'          # 乡镇
+            # 完整的行政区划匹配（用于初步提取）
+            r'([\u4e00-\u9fa5]{2,}市[\u4e00-\u9fa5]{2,}区)',  # 匹配"xx市xx区"，必须是完整的市区组合
+            r'([\u4e00-\u9fa5]{2,}市)',                      # 匹配"xx市"
+            r'([\u4e00-\u9fa5]{2,}区)',                      # 匹配"xx区"
+            r'([\u4e00-\u9fa5]{2,}[镇乡])',                  # 匹配"xx镇/乡"
+            r'([\u4e00-\u9fa5]{2,}村)',                      # 匹配"xx村"
+            r'([\u4e00-\u9fa5]{2,}地区)',                    # 匹配"xx地区"
+            r'([\u4e00-\u9fa5]{2,}新区)',                    # 匹配"xx新区"
+            r'([\u4e00-\u9fa5]{2,}开发区)',                  # 匹配"xx开发区"
+            r'([\u4e00-\u9fa5]{2,}园区)'                     # 匹配"xx园区"
         ]
         
         # 时间关键词（增强时间识别）
@@ -183,16 +186,75 @@ class IntentRecognitionEngine:
                 domain_info["keywords"].extend(matched_keywords)
                 break
         
-        # 2. 提取地理位置（支持多个地理位置）
-        locations = []
-        for pattern in location_patterns:
-            matches = re.findall(pattern, question)
-            if matches:
-                locations.extend(matches)
-        if locations:
-            # 如果找到多个地理位置，选择最长的一个（通常更具体）
-            domain_info["location"] = max(locations, key=len)
-            domain_info["keywords"].append(domain_info["location"])
+        self.logger.info(f"开始处理问题中的地理位置: {question}")
+        
+        # 2. 提取地理位置
+        seen_locations = set()  # 用于存储已处理的地理位置
+        
+        # 预处理：移除问题中的一些干扰词
+        clean_question = re.sub(r'的|是|在|有|和|与|及', '', question)
+        self.logger.debug(f"清理后的问题文本: {clean_question}")
+        
+        # 无效词列表
+        invalid_words = ['年', '面积', '城镇', '用地']
+        
+        def extract_locations(text: str) -> None:
+            """提取地理位置并添加到seen_locations集合中"""
+            # 首先尝试匹配完整的市区组合
+            city_district_match = re.search(r'([\u4e00-\u9fa5]{2,})市([\u4e00-\u9fa5]{2,})区', text)
+            if city_district_match:
+                # 提取市
+                city = f"{city_district_match.group(1)}市"
+                if not any(word in city for word in invalid_words):
+                    seen_locations.add(city)
+                    self.logger.debug(f"从复合地名中提取市级地理关键词: {city}")
+                
+                # 提取区
+                district = f"{city_district_match.group(2)}区"
+                if not any(word in district for word in invalid_words):
+                    seen_locations.add(district)
+                    self.logger.debug(f"从复合地名中提取区级地理关键词: {district}")
+                return
+            
+            # 如果没有找到市区组合，尝试单独的市或区
+            for pattern in location_patterns[1:]:  # 跳过第一个模式（市区组合）
+                match = re.search(pattern, text)
+                if match:
+                    location = match.group(1)
+                    if location and not any(word in location for word in invalid_words):
+                        seen_locations.add(location)
+                        self.logger.debug(f"提取单独的地理关键词: {location}")
+                        break
+        
+        # 处理文本
+        extract_locations(clean_question)
+        
+        # 记录找到的地理位置
+        if seen_locations:
+            self.logger.info(f"找到的地理位置: {list(seen_locations)}")
+            
+            # 将处理后的地理位置添加到关键词中
+            domain_info["keywords"].extend(list(seen_locations))
+            
+            # 选择最合适的位置作为主要位置
+            # 优先选择区级单位，其次是市级单位
+            main_location = None
+            for loc in seen_locations:
+                if '区' in loc:
+                    main_location = loc
+                    break
+            if not main_location:
+                for loc in seen_locations:
+                    if '市' in loc:
+                        main_location = loc
+                        break
+            if not main_location:
+                main_location = list(seen_locations)[0]
+            
+            domain_info["location"] = main_location
+            self.logger.info(f"提取到的地理位置: {list(seen_locations)}, 主要位置: {main_location}")
+        else:
+            self.logger.warning("未找到任何地理位置")
         
         # 3. 提取时间信息（支持多种时间格式）
         for pattern in time_patterns:
@@ -371,20 +433,26 @@ class IntentRecognitionEngine:
                 calculation_steps.append(f"{step_count}. 地区匹配检查:")
                 step_count += 1
                 if user_location not in result_keywords:
-                    boost_factor -= 0.2
-                    boost_details.append(f"地区不匹配({user_location}):-0.2")
-                    calculation_steps.append(f"   - 不匹配: -0.2 (当前boost_factor={boost_factor:.3f})")
+                    boost_factor -= 0.3
+                    boost_details.append(f"地区不匹配({user_location}):-0.3")
+                    calculation_steps.append(f"   - 不匹配: -0.3 (当前boost_factor={boost_factor:.3f})")
                     location_mismatch = True
                 else:
-                    boost_factor += 0.1
-                    boost_details.append(f"地区匹配({user_location}):+0.1")
-                    calculation_steps.append(f"   - 匹配: +0.1 (当前boost_factor={boost_factor:.3f})")
+                    boost_factor += 0.2
+                    boost_details.append(f"地区匹配({user_location}):+0.2")
+                    calculation_steps.append(f"   - 匹配: +0.2 (当前boost_factor={boost_factor:.3f})")
             
             # 如果时间和地区都不匹配，额外惩罚
             if time_mismatch and location_mismatch and user_time and user_location:
-                boost_factor -= 0.3
-                boost_details.append("时间地区双重不匹配:-0.3")
-                calculation_steps.append(f"{step_count}. 时间地区双重不匹配惩罚: -0.3 (当前boost_factor={boost_factor:.3f})")
+                boost_factor -= 0.2
+                boost_details.append("时间地区双重不匹配:-0.2")
+                calculation_steps.append(f"{step_count}. 时间地区双重不匹配惩罚: -0.2 (当前boost_factor={boost_factor:.3f})")
+                step_count += 1
+            # 如果时间和地区都匹配，额外奖励
+            elif not time_mismatch and not location_mismatch and user_time and user_location:
+                boost_factor += 0.2
+                boost_details.append("时间地区双重匹配:+0.2")
+                calculation_steps.append(f"{step_count}. 时间地区双重匹配奖励: +0.2 (当前boost_factor={boost_factor:.3f})")
                 step_count += 1
             
             # 其他关键词匹配加成
@@ -608,16 +676,90 @@ class IntentRecognitionEngine:
                 for area in areas:
                     area_str = str(area).strip()
                     if area_str:
-                        field_keywords['area'].append(area_str)
-                        self.logger.info(f"从XZQHMC添加地区关键词: {area_str}")
+                        # 首先添加完整的地区名称
+                        if area_str not in field_keywords['area']:
+                            field_keywords['area'].append(area_str)
+                            self.logger.info(f"从XZQHMC添加完整地区关键词: {area_str}")
+                        
+                        # 处理行政区划层级
+                        # 使用正则表达式匹配不同级别的行政区划
+                        admin_patterns = [
+                            (r'([\u4e00-\u9fa5]+省)', '省级'),
+                            (r'([\u4e00-\u9fa5]+[市州])', '市级'),
+                            (r'([\u4e00-\u9fa5]+[县区])', '县区级'),
+                            (r'([\u4e00-\u9fa5]+[镇乡])', '镇乡级'),
+                            (r'([\u4e00-\u9fa5]+村)', '村级')
+                        ]
+                        
+                        for pattern, level in admin_patterns:
+                            matches = re.findall(pattern, area_str)
+                            for match in matches:
+                                if match and match not in field_keywords['area']:
+                                    field_keywords['area'].append(match)
+                                    self.logger.info(f"从XZQHMC拆分添加{level}关键词: {match}")
+                        
+                        # 处理组合地名（例如：镇+村）
+                        if '镇' in area_str and '村' in area_str:
+                            # 提取镇名
+                            town_match = re.search(r'([\u4e00-\u9fa5]+镇)', area_str)
+                            if town_match:
+                                town = town_match.group(1)
+                                if town not in field_keywords['area']:
+                                    field_keywords['area'].append(town)
+                                    self.logger.info(f"从XZQHMC提取镇名: {town}")
+                            
+                            # 提取村名
+                            village_match = re.search(r'([\u4e00-\u9fa5]+村)', area_str)
+                            if village_match:
+                                village = village_match.group(1)
+                                if village not in field_keywords['area']:
+                                    field_keywords['area'].append(village)
+                                    self.logger.info(f"从XZQHMC提取村名: {village}")
             elif 'QSDWMC' in df.columns:
                 # 如果没有XZQHMC，则从QSDWMC获取地区信息
                 areas = df['QSDWMC'].dropna().unique()
                 for area in areas:
                     area_str = str(area).strip()
                     if area_str:
-                        field_keywords['area'].append(area_str)
-                        self.logger.info(f"从QSDWMC添加地区关键词: {area_str}")
+                        # 首先添加完整的地区名称
+                        if area_str not in field_keywords['area']:
+                            field_keywords['area'].append(area_str)
+                            self.logger.info(f"从QSDWMC添加完整地区关键词: {area_str}")
+                        
+                        # 处理行政区划层级
+                        # 使用正则表达式匹配不同级别的行政区划
+                        admin_patterns = [
+                            (r'([\u4e00-\u9fa5]+省)', '省级'),
+                            (r'([\u4e00-\u9fa5]+[市州])', '市级'),
+                            (r'([\u4e00-\u9fa5]+[县区])', '县区级'),
+                            (r'([\u4e00-\u9fa5]+[镇乡])', '镇乡级'),
+                            (r'([\u4e00-\u9fa5]+村)', '村级')
+                        ]
+                        
+                        for pattern, level in admin_patterns:
+                            matches = re.findall(pattern, area_str)
+                            for match in matches:
+                                if match and match not in field_keywords['area']:
+                                    field_keywords['area'].append(match)
+                                    self.logger.info(f"从QSDWMC拆分添加{level}关键词: {match}")
+                        
+                        # 处理组合地名（例如：镇+村）
+                        if '镇' in area_str and '村' in area_str:
+                            # 提取镇名
+                            town_match = re.search(r'([\u4e00-\u9fa5]+镇)', area_str)
+                            if town_match:
+                                town = town_match.group(1)
+                                if town not in field_keywords['area']:
+                                    field_keywords['area'].append(town)
+                                    self.logger.info(f"从QSDWMC提取镇名: {town}")
+                            
+                            # 提取村名
+                            village_match = re.search(r'([\u4e00-\u9fa5]+村)', area_str)
+                            if village_match:
+                                village = village_match.group(1)
+                                if village not in field_keywords['area']:
+                                    field_keywords['area'].append(village)
+                                    self.logger.info(f"从QSDWMC提取村名: {village}")
             
             # 添加属性关键词（根据字段组合）
             if has_area and has_type:
