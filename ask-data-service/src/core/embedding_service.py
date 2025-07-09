@@ -63,12 +63,13 @@ class EmbeddingService:
                 "input": text.strip()
             }
             
-            # 调用远程embedding API
+            # 调用远程embedding API，禁用代理以避免超时
             response = requests.post(
                 self.embeddings_url,
                 headers=self.headers,
                 json=data,
-                timeout=30
+                timeout=30,
+                proxies={"http": None, "https": None}  # 禁用代理
             )
             
             if response.status_code != 200:
@@ -92,7 +93,18 @@ class EmbeddingService:
             # 检查是否为服务不可用的错误
             if "502" in str(e) or "Bad Gateway" in str(e):
                 self.logger.error("Embedding服务不可用 (502 Bad Gateway)，请检查服务状态")
-            return np.zeros(1024)
+            elif "Read timed out" in str(e):
+                self.logger.error("Embedding服务连接超时，请检查网络连接和代理设置")
+            elif "Connection refused" in str(e):
+                self.logger.error("Embedding服务连接被拒绝，请检查服务是否运行")
+            
+            # 返回一个小的随机向量，避免零向量导致的 NaN 问题
+            random_vector = np.random.normal(0, 0.01, 1024)
+            if normalize:
+                norm = np.linalg.norm(random_vector)
+                if norm > 0:
+                    random_vector = random_vector / norm
+            return random_vector
     
     def encode_batch(self, texts: List[str], normalize: bool = True, batch_size: int = 32) -> List[np.ndarray]:
         """
@@ -124,12 +136,13 @@ class EmbeddingService:
                     "input": batch_texts
                 }
                 
-                # 调用远程embedding API
+                # 调用远程embedding API，禁用代理以避免超时
                 response = requests.post(
                     self.embeddings_url,
                     headers=self.headers,
                     json=data,
-                    timeout=60
+                    timeout=60,
+                    proxies={"http": None, "https": None}  # 禁用代理
                 )
                 
                 if response.status_code != 200:
