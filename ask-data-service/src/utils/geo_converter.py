@@ -18,7 +18,8 @@ class GeoConverter:
     @staticmethod
     def shp_to_csv(shp_file_path: str, output_csv_path: str = None, 
                    include_geometry_info: bool = True, 
-                   geometry_columns: List[str] = None) -> str:
+                   geometry_columns: List[str] = None,
+                   preserve_string_types: bool = True) -> str:
         """
         将SHP文件转换为CSV文件
         
@@ -27,6 +28,7 @@ class GeoConverter:
             output_csv_path: 输出CSV文件路径，如果为None则自动生成
             include_geometry_info: 是否包含几何信息（如坐标、面积等）
             geometry_columns: 要提取的几何信息列名列表
+            preserve_string_types: 是否保留字符串类型（避免自动转换为数值）
             
         Returns:
             str: 输出CSV文件路径
@@ -50,7 +52,7 @@ class GeoConverter:
                     logger.info("✂️ 已移除geometry列")
                 
                 # 处理数据类型
-                df = GeoConverter._clean_dataframe(df)
+                df = GeoConverter._clean_dataframe(df, preserve_string_types)
                 
                 # 生成输出路径
                 if output_csv_path is None:
@@ -146,12 +148,13 @@ class GeoConverter:
             return df
     
     @staticmethod
-    def _clean_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    def _clean_dataframe(df: pd.DataFrame, preserve_string_types: bool = True) -> pd.DataFrame:
         """
         清理DataFrame，处理数据类型和特殊值
         
         Args:
             df: 要清理的DataFrame
+            preserve_string_types: 是否保留字符串类型（避免自动转换为数值）
             
         Returns:
             pd.DataFrame: 清理后的DataFrame
@@ -164,15 +167,19 @@ class GeoConverter:
         
         # 处理数据类型
         for col in df.columns:
-            # 尝试转换为数值类型
             if df[col].dtype == 'object':
-                # 尝试转换为数值
-                try:
-                    pd.to_numeric(df[col], errors='raise')
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
-                except:
-                    # 保持为字符串，但处理None值
-                    df[col] = df[col].astype(str).replace('None', '')
+                if preserve_string_types:
+                    # 保留字符串类型，只处理None值
+                    df[col] = df[col].astype(str).replace('None', '').replace('nan', '')
+                    logger.debug(f"🔤 保留字符串类型: {col}")
+                else:
+                    # 原来的逻辑：尝试转换为数值
+                    try:
+                        pd.to_numeric(df[col], errors='raise')
+                        df[col] = pd.to_numeric(df[col], errors='coerce')
+                    except:
+                        # 保持为字符串，但处理None值
+                        df[col] = df[col].astype(str).replace('None', '')
         
         # 处理无穷大和NaN值
         df = df.replace([float('inf'), float('-inf')], None)
@@ -194,10 +201,26 @@ class GeoConverter:
         try:
             gdf = gpd.read_file(shp_file_path)
             
+            # 获取详细的字段类型信息
+            field_types = {}
+            for col in gdf.columns:
+                if col != 'geometry':
+                    dtype = gdf[col].dtype
+                    # 记录原始pandas类型
+                    field_types[col] = {
+                        'pandas_type': str(dtype),
+                        'python_type': dtype.type.__name__,
+                        'is_numeric': pd.api.types.is_numeric_dtype(dtype),
+                        'is_string': pd.api.types.is_string_dtype(dtype),
+                        'is_datetime': pd.api.types.is_datetime64_any_dtype(dtype),
+                        'sample_values': gdf[col].dropna().head(3).tolist() if len(gdf) > 0 else []
+                    }
+            
             info = {
                 'features_count': len(gdf),
                 'columns_count': len(gdf.columns),
                 'columns': list(gdf.columns),
+                'field_types': field_types,  # 新增：详细的字段类型信息
                 'crs': str(gdf.crs) if gdf.crs else None,
                 'geometry_type': gdf.geometry.geom_type.unique().tolist(),
                 'bounds': gdf.total_bounds.tolist() if len(gdf) > 0 else None,
@@ -205,6 +228,7 @@ class GeoConverter:
             }
             
             logger.info(f"📋 SHP文件信息: {info['features_count']} 个要素, {info['columns_count']} 个字段")
+            logger.debug(f"🔍 字段类型信息: {field_types}")
             return info
             
         except Exception as e:

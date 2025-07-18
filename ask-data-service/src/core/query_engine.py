@@ -70,7 +70,10 @@ class QueryEngine:
             "enforce_privacy": False,  # 允许记录详细日志
             "log_server_url": None,   # 禁用远程日志服务器
             "advanced_reasoning": True,  # 启用高级推理日志
-            "save_logs": True  # 启用日志保存
+            "save_logs": True,  # 启用日志保存
+            "max_retries": 3,  # 增加重试次数
+            "retry_wait_time": 1,  # 重试等待时间（秒）
+            "enable_sql_query_validation": True  # 启用SQL查询验证
         })
         
         # 加载数据
@@ -217,13 +220,26 @@ class QueryEngine:
         context = self.analyzer.generate_context(self.data_info)
         
         # 构建完整的查询指令
-        enhanced_query = f"""一定要给出文本结果，并根据结果生成图表：{question}
+        enhanced_query = f"""请分析以下问题并用中文文本形式回答：{question}
 
 {context}
 
 重要说明：
-- 结果格式：result = {{"type": "string", "value": 具体值}}
-- 如果是文本描述，使用"string"类型
+- 必须使用execute_sql_query函数执行SQL查询
+- 对于面积类查询（如"旱地面积"），需要通过条件筛选计算：
+  例如：SELECT SUM(TBMJ) FROM table_name WHERE 地类名称 = '旱地'
+- 对于地区筛选，使用县级名称、市级名称等字段
+- 使用表格中存在的列名，包括中文列名（如"地类名称"、"县级名称"等）
+- 重要：请使用PandasAI提供的实际表名
+- 代码格式示例：
+```python
+# 执行SQL查询（使用正确的表名）
+result = execute_sql_query("SELECT SUM(TBMJ) FROM table_name WHERE 地类名称 = '旱地' AND 县级名称 = '安远县'")
+# 处理结果并返回
+final_result = {{"type": "string", "value": f"安远县旱地面积为：{{result}}平方米"}}
+```
+- 确保代码完整且可执行
+- 返回格式：result = {{"type": "string", "value": "具体答案"}}
 """
         
         try:
@@ -240,7 +256,30 @@ class QueryEngine:
                 import logging
                 logging.getLogger('pandasai').info(f"开始处理查询: {question}")
                 
-                response = self.df.chat(enhanced_query)
+                # 添加重试机制和代码验证
+                max_attempts = 3
+                for attempt in range(max_attempts):
+                    try:
+                        response = self.df.chat(enhanced_query)
+                        
+                        # 验证响应是否有效
+                        if self._is_valid_response(response):
+                            break
+                        elif attempt < max_attempts - 1:
+                            self.logger.warning(f"第{attempt + 1}次查询无效响应，重试...")
+                            logging.getLogger('pandasai').warning(f"查询重试 {attempt + 1}/{max_attempts}: {question}")
+                            continue
+                        else:
+                            self.logger.error(f"所有{max_attempts}次查询尝试均失败")
+                            response = "查询失败，请重新表述问题"
+                            
+                    except Exception as e:
+                        if attempt < max_attempts - 1:
+                            self.logger.warning(f"第{attempt + 1}次查询异常，重试: {str(e)}")
+                            logging.getLogger('pandasai').warning(f"查询异常重试 {attempt + 1}/{max_attempts}: {question} - {str(e)}")
+                            continue
+                        else:
+                            raise e
                 
                 # 记录响应类型和内容
                 self.logger.debug(f"📊 响应类型: {type(response)}")

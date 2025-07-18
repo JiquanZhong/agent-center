@@ -131,14 +131,29 @@ class VectorSearchService:
             List[Dict]: 搜索结果列表
         """
         try:
-            # 构建查询
+            # 检查查询向量是否有效
+            if isinstance(query_embedding, np.ndarray):
+                if np.any(np.isnan(query_embedding)) or np.any(np.isinf(query_embedding)):
+                    self.logger.warning("查询向量包含无效值(NaN或Inf)，返回空结果")
+                    return []
+                query_vector = query_embedding.tolist()
+            else:
+                query_vector = query_embedding
+            
+            # 构建查询，添加NaN检查
             query = {
                 "script_score": {
                     "query": {"match_all": {}},
                     "script": {
-                        "source": "cosineSimilarity(params.query_vector, 'embedding') + 1.0",
+                        "source": """
+                            double similarity = cosineSimilarity(params.query_vector, 'embedding');
+                            if (Double.isNaN(similarity) || Double.isInfinite(similarity)) {
+                                return 0.0;
+                            }
+                            return similarity + 1.0;
+                        """,
                         "params": {
-                            "query_vector": query_embedding.tolist() if isinstance(query_embedding, np.ndarray) else query_embedding
+                            "query_vector": query_vector
                         }
                     }
                 }
@@ -200,6 +215,15 @@ class VectorSearchService:
             bool: 是否成功
         """
         try:
+            # 检查嵌入向量是否有效
+            if isinstance(embedding, np.ndarray):
+                if np.any(np.isnan(embedding)) or np.any(np.isinf(embedding)):
+                    self.logger.warning(f"数据集 {dataset_id} 的嵌入向量包含无效值，跳过索引")
+                    return False
+                embedding_list = embedding.tolist()
+            else:
+                embedding_list = embedding
+            
             self.logger.debug(f"📝 开始索引数据集 {dataset_id}: {dataset_info.get('name', 'Unknown')}")
             
             # 验证embedding
@@ -207,17 +231,7 @@ class VectorSearchService:
                 self.logger.error(f"❌ 数据集 {dataset_id} 的embedding为None")
                 return False
             
-            # 转换embedding格式
-            try:
-                if isinstance(embedding, np.ndarray):
-                    embedding_list = embedding.tolist()
-                    self.logger.debug(f"📊 Embedding维度: {embedding.shape}")
-                else:
-                    embedding_list = embedding
-                    self.logger.debug(f"📊 Embedding类型: {type(embedding)}, 长度: {len(embedding) if hasattr(embedding, '__len__') else 'unknown'}")
-            except Exception as emb_convert_e:
-                self.logger.error(f"❌ Embedding格式转换失败: {emb_convert_e}")
-                return False
+            self.logger.debug(f"📊 Embedding维度: {embedding.shape if isinstance(embedding, np.ndarray) else len(embedding_list) if hasattr(embedding_list, '__len__') else 'unknown'}")
             
             doc = {
                 "dataset_id": dataset_id,

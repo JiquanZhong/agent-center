@@ -162,14 +162,7 @@ class SchemaDatabase:
                     id BIGSERIAL PRIMARY KEY,
                     dataset_id BIGINT NOT NULL,
                     transformation_name VARCHAR(255) NOT NULL,
-                    transformation_type VARCHAR(100) NOT NULL CHECK (transformation_type IN (
-                        'to_lowercase', 'to_uppercase', 'strip', 'truncate', 'pad', 'extract',
-                        'round_numbers', 'scale', 'clip', 'normalize', 'standardize', 'ensure_positive', 'bin',
-                        'convert_timezone', 'format_date', 'to_datetime', 'validate_date_range',
-                        'fill_na', 'replace', 'remove_duplicates', 'normalize_phone',
-                        'encode_categorical', 'map_values', 'standardize_categories', 'rename',
-                        'validate_email', 'validate_foreign_key', 'anonymize', 'to_numeric'
-                    )),
+                    transformation_type VARCHAR(100) NOT NULL,
                     target_column VARCHAR(255),
                     parameters JSONB,
                     sort_order INTEGER DEFAULT 0,

@@ -439,93 +439,6 @@ class DataAnalyzer:
             logger.warning(f"⚠️ 缓存清理失败: {str(e)}")
     
     @staticmethod
-    def create_semantic_dataframe_from_config(file_path: str, dataset_id: str, db: SchemaDatabase = None) -> Any:
-        """
-        从数据库中的配置创建语义层DataFrame
-        
-        Args:
-            file_path: 数据文件路径
-            dataset_id: 数据集ID，用于从数据库获取配置
-            db: 可选的数据库连接实例，如果提供则复用，否则创建新连接
-        """
-        logger = get_logger(__name__)
-        
-        # 从数据库获取语义配置
-        try:
-            # 如果没有提供数据库连接，则创建新的
-            if db is None:
-                settings = Settings()
-                db = SchemaDatabase(settings)
-                logger.debug("创建了新的数据库连接")
-            else:
-                logger.debug("复用现有的数据库连接")
-                
-            schema = db.get_dataset_schema(dataset_id)
-            
-            if not schema:
-                logger.warning(f"⚠️ 未找到数据集配置: {dataset_id}，使用默认配置")
-                schema = {"columns": []}
-            else:
-                logger.info(f"✅ 从数据库获取到语义配置: {dataset_id}")
-                logger.debug(f"📋 配置内容: {schema}")
-                
-        except Exception as e:
-            logger.error(f"❌ 从数据库获取配置失败: {str(e)}，使用默认配置")
-            schema = {"columns": []}
-        
-        # 读取原始数据
-        raw_df = DataAnalyzer.load_data(file_path)
-        
-        # 使用pai.create创建语义层DataFrame
-        columns_config = schema.get("columns", [])
-        # 使用符合PandasAI要求的路径格式：organization/dataset
-        dataset_path = f"semantic/{dataset_id}"
-        
-        # 如果配置为空，生成标准配置
-        if not columns_config:
-            logger.warning("⚠️ 未找到有效的字段配置，生成标准配置")
-            
-            # 检查是否为土地数据
-            is_land_data = any(field in raw_df.columns for field in ['ZLDWDM', 'DLBM', 'TBMJ', 'QSXZ'])
-            
-            if is_land_data:
-                logger.info("🏞️ 检测到土地数据，使用标准土地字段配置")
-                columns_config = DataAnalyzer._generate_standard_land_columns(list(raw_df.columns))
-            else:
-                # 使用默认配置
-                columns_config = [
-                    {"name": col, "type": str(raw_df[col].dtype), "description": f"字段 {col}"} 
-                    for col in raw_df.columns
-                ]
-        
-        logger.info(f"🔧 使用语义层路径: {dataset_path}")
-        logger.info(f"📊 配置了{len(columns_config)}个字段的语义信息")
-        
-        # 打印详细的列配置信息，便于调试
-        for i, col_config in enumerate(columns_config[:3]):  # 只打印前3个
-            logger.debug(f"🔍 列配置{i+1}: {col_config}")
-        
-        try:
-            # 先清理可能存在的缓存，然后创建
-            DataAnalyzer.clear_semantic_cache(dataset_path)
-            
-            # 创建语义数据框
-            semantic_df = pai.create(
-                path=dataset_path,
-                df=pai.DataFrame(raw_df, config={"description": schema.get("description", "")}),
-                description=schema.get("description", ""),
-                columns=columns_config
-            )
-            logger.info("✅ 语义数据框创建成功")
-            return semantic_df
-            
-        except Exception as e:
-            logger.error(f"❌ 创建语义数据框失败: {str(e)}")
-            # 如果失败，直接使用原始DataFrame
-            logger.warning("🔄 回退到原始DataFrame模式")
-            return pai.DataFrame(raw_df)
-    
-    @staticmethod
     def create_semantic_dataframe(file_path: str, schema: Optional[Dict[str, Any]] = None) -> Any:
         """
         使用语义层创建PandasAI DataFrame（自动生成配置）
@@ -569,7 +482,10 @@ class DataAnalyzer:
             # 创建语义数据框
             semantic_df = pai.create(
                 path=dataset_path,
-                df=pai.DataFrame(raw_df, config={"description": schema.get("description", "")}),
+                df=pai.DataFrame(raw_df, config={
+                    "description": schema.get("description", ""),
+                    "columns": columns_config
+                }),
                 description=schema.get("description", ""),
                 columns=columns_config
             )
@@ -604,19 +520,19 @@ class DataAnalyzer:
   
 """
         
-        context = f"""
-数据结构信息：
-- 数据规模：{data_info['shape'][0]}行，{data_info['shape'][1]}列
-- 日期列：{', '.join(data_info['date_columns'])} ({data_info.get(data_info['date_columns'][0] + '_range', '未知范围') if data_info['date_columns'] else '无'})
-- 分类列信息：{json.dumps(data_info['categorical_info'], ensure_ascii=False, indent=2)}
-{geo_context}
-查询要求：
-1. 必须使用execute_sql_query函数
-2. 仔细分析用户问题，确保查询逻辑正确
-3. 对于比较分析，需要分别查询不同条件的数据
-4. 注意日期格式和字段名称的准确性
-5. 注意考虑数据中没用户想要的数据的情况，比如用户想要查询2010的数据，但是数据中没有2010的土地数据，那么需要告诉用户数据中没有2010的土地数据
-"""
+        # 简化分类信息，只显示前5个值
+        simplified_categorical_info = {}
+        for key, values in data_info['categorical_info'].items():
+            if isinstance(values, list) and len(values) > 5:
+                simplified_categorical_info[key] = values[:5] + [f"...等{len(values)}个值"]
+            else:
+                simplified_categorical_info[key] = values
+        
+        context = f"""数据概览：
+- 数据规模：{data_info['shape'][0]}行 x {data_info['shape'][1]}列
+- 时间范围：{', '.join(data_info['date_columns'])} ({data_info.get(data_info['date_columns'][0] + '_range', '未知') if data_info['date_columns'] else '无'})
+- 主要字段：{json.dumps(simplified_categorical_info, ensure_ascii=False, indent=2)}
+{geo_context}"""
         return context
     
     # ====================== Transformations 支持方法 ======================
@@ -700,6 +616,8 @@ class DataAnalyzer:
                     result_df = DataAnalyzer._apply_fill_na(result_df, params)
                 elif trans_type == 'format_date':
                     result_df = DataAnalyzer._apply_format_date(result_df, params)
+                elif trans_type == 'format_code':
+                    result_df = DataAnalyzer._apply_format_code(result_df, params)
                 # 可以继续添加更多转换类型的支持
                 else:
                     logger.warning(f"⚠️ 暂不支持的转换类型: {trans_type}")
@@ -756,6 +674,34 @@ class DataAnalyzer:
             
             # 应用日期格式化
             df[new_column] = df[column].dt.strftime(format_str)
+        
+        return df
+    
+    @staticmethod
+    def _apply_format_code(df: pd.DataFrame, params: Dict[str, Any]) -> pd.DataFrame:
+        """应用format_code转换 - 格式化代码字段"""
+        logger = get_logger(__name__)
+        column = params['column']
+        format_str = params.get('format', '{:04d}')
+        ensure_string = params.get('ensure_string', True)
+        new_column = params.get('new_column', column)
+        
+        if column in df.columns:
+            try:
+                # 尝试将数据转换为数值，然后应用格式化
+                numeric_data = pd.to_numeric(df[column], errors='coerce')
+                formatted_data = numeric_data.apply(lambda x: format_str.format(int(x)) if pd.notna(x) else '')
+                
+                if ensure_string:
+                    formatted_data = formatted_data.astype(str)
+                
+                df[new_column] = formatted_data
+                
+            except Exception as e:
+                logger.warning(f"⚠️ 格式化代码字段失败: {e}")
+                # 如果格式化失败，保持原数据
+                if new_column != column:
+                    df[new_column] = df[column]
         
         return df
     
@@ -829,6 +775,73 @@ class DataAnalyzer:
         return df
     
     @staticmethod
+    def _infer_column_type(series) -> str:
+        """智能推断列的数据类型，将pandas类型转换为PandasAI语义层类型"""
+        dtype = str(series.dtype)
+        
+        if 'int' in dtype:
+            return "integer"
+        elif 'float' in dtype:
+            return "float"
+        elif 'datetime' in dtype:
+            return "datetime"
+        elif 'bool' in dtype:
+            return "boolean"
+        elif dtype == 'object':
+            # 对于object类型，需要检查实际内容
+            sample_values = series.dropna().head(100)
+            if len(sample_values) == 0:
+                return "string"
+            
+            # 检查是否都能转换为数字
+            try:
+                pd.to_numeric(sample_values, errors='raise')
+                # 检查是否为整数
+                numeric_values = pd.to_numeric(sample_values)
+                if all(numeric_values == numeric_values.astype(int)):
+                    return "integer"
+                else:
+                    return "float"
+            except (ValueError, TypeError):
+                return "string"
+        else:
+            return "string"
+    
+    @staticmethod
+    def _prepare_dataframe_for_semantic_layer(df: pd.DataFrame, columns_config: List[Dict[str, Any]]) -> pd.DataFrame:
+        """为语义层准备DataFrame，确保数据类型一致性"""
+        logger = get_logger(__name__)
+        df_copy = df.copy()
+        
+        for col_config in columns_config:
+            col_name = col_config['name']
+            expected_type = col_config['type']
+            
+            if col_name in df_copy.columns:
+                try:
+                    if expected_type == "integer":
+                        # 对于整数类型，使用可空整数类型
+                        df_copy[col_name] = pd.to_numeric(df_copy[col_name], errors='coerce').astype('Int64')
+                    elif expected_type == "float":
+                        # 对于浮点类型
+                        df_copy[col_name] = pd.to_numeric(df_copy[col_name], errors='coerce')
+                    elif expected_type == "string":
+                        # 对于字符串类型，确保转换为字符串
+                        df_copy[col_name] = df_copy[col_name].astype(str)
+                        # 将NaN转换为空字符串
+                        df_copy[col_name] = df_copy[col_name].replace('nan', '')
+                    elif expected_type == "datetime":
+                        # 对于日期时间类型
+                        df_copy[col_name] = pd.to_datetime(df_copy[col_name], errors='coerce')
+                    
+                    logger.debug(f"✅ 列 {col_name} 类型转换为 {expected_type}")
+                    
+                except Exception as e:
+                    logger.warning(f"⚠️ 列 {col_name} 类型转换失败: {e}，保持原始类型")
+        
+        return df_copy
+    
+    @staticmethod
     def create_enhanced_semantic_dataframe(file_path: str, dataset_id: str, 
                                          db: SchemaDatabase = None, 
                                          auto_transformations: bool = True) -> Any:
@@ -880,50 +893,134 @@ class DataAnalyzer:
                 )
                 logger.info(f"✅ Transformations应用完成，数据形状: {transformed_df.shape}")
             
-            # 5. 构建列配置
+            # 5. 构建列配置（确保使用数据库中的描述和别名）
             columns_config = []
             if schema and schema.get("columns"):
-                columns_config = schema["columns"]
+                # 使用数据库中的列配置
+                db_columns = {col['name']: col for col in schema['columns']}
+                logger.info(f"📋 从数据库获取到 {len(db_columns)} 个列配置")
+                
+                for col in transformed_df.columns:
+                    if col in db_columns:
+                        # 使用数据库中的配置
+                        db_col = db_columns[col]
+                        col_config = {
+                            "name": col,
+                            "type": db_col.get('type', DataAnalyzer._infer_column_type(transformed_df[col])),
+                            "description": db_col.get('description') or f"字段 {col}",
+                        }
+                        # 如果有别名，添加到配置中
+                        if db_col.get('alias'):
+                            col_config["alias"] = db_col['alias']
+                        
+                        columns_config.append(col_config)
+                        logger.debug(f"  ✅ 使用数据库配置: {col} -> {db_col.get('description', 'N/A')}")
+                    else:
+                        # 对于新列（如转换生成的列），使用推断配置
+                        inferred_type = DataAnalyzer._infer_column_type(transformed_df[col])
+                        columns_config.append({
+                            "name": col,
+                            "type": inferred_type,
+                            "description": f"字段 {col}",
+                            "alias": col  # 为新列添加别名
+                        })
+                        logger.debug(f"  ⚡ 推断新列配置: {col} (类型: {inferred_type})")
             else:
                 # 使用默认配置
-                logger.warning("⚠️ 未找到有效的字段配置，使用默认配置")
+                logger.info("⚠️ 未找到有效的字段配置，使用默认配置")
                 for col in transformed_df.columns:
-                    dtype = str(transformed_df[col].dtype)
-                    if 'int' in dtype:
-                        col_type = "integer"
-                    elif 'float' in dtype:
-                        col_type = "float"
-                    elif 'datetime' in dtype:
-                        col_type = "datetime"
-                    elif 'bool' in dtype:
-                        col_type = "boolean"
-                    else:
-                        col_type = "string"
-                    
                     columns_config.append({
                         "name": col,
-                        "type": col_type,
+                        "type": DataAnalyzer._infer_column_type(transformed_df[col]),
                         "description": f"字段 {col}"
                     })
             
             # 6. 构建PandasAI v3格式的schema
-            dataset_path = f"semantic/{dataset_id}"
+            # 确保表名符合PandasAI要求：小写并使用连字符
+            table_name = f"dataset-{dataset_id}".lower()
+            dataset_path = f"semantic/{table_name}"
             description = schema.get("description", f"数据集 {dataset_id}") if schema else f"数据集 {dataset_id}"
             
             # 7. 清理缓存
             DataAnalyzer.clear_semantic_cache(dataset_path)
             
-            # 8. 直接使用处理后的DataFrame创建语义DataFrame
-            logger.info(f"📊 使用处理后的数据创建语义DataFrame，形状: {transformed_df.shape}")
+            # 8. 数据预处理和创建语义DataFrame
+            logger.info(f"📊 使用处理后的数据和列配置创建语义DataFrame，形状: {transformed_df.shape}")
+            logger.info(f"📋 列配置数量: {len(columns_config)}")
             
-            # 直接使用pai.DataFrame创建，不使用pai.create
-            semantic_df = pai.DataFrame(transformed_df)
-            
-            logger.info("✅ 增强语义数据框创建成功（直接使用处理后的数据）")
-            return semantic_df
+            try:
+                # 8.1 预处理DataFrame，确保数据类型一致性
+                logger.info("🔧 预处理DataFrame以确保类型一致性...")
+                prepared_df = DataAnalyzer._prepare_dataframe_for_semantic_layer(transformed_df, columns_config)
+                logger.info(f"✅ DataFrame预处理完成，形状: {prepared_df.shape}")
+                
+                # 8.2 使用PandasAI v3的正确方式创建语义DataFrame，包含列配置
+                semantic_df = pai.create(
+                    path=dataset_path,
+                    df=pai.DataFrame(prepared_df, config={
+                        "description": description,
+                        "columns": columns_config
+                    }),
+                    description=description,
+                    columns=columns_config
+                )
+                
+                logger.info("✅ 增强语义数据框创建成功（包含列配置信息）")
+                return semantic_df
+                
+            except Exception as create_error:
+                logger.error(f"❌ 创建语义DataFrame失败: {create_error}")
+                
+                # 第一级回退：尝试使用基础配置
+                try:
+                    logger.info("🔄 尝试第一级回退：使用简化列配置...")
+                    simplified_columns = []
+                    for col in transformed_df.columns:
+                        simplified_columns.append({
+                            "name": col,
+                            "type": "string",  # 统一使用string类型避免转换问题
+                            "description": f"字段 {col}"
+                        })
+                    
+                    semantic_df = pai.create(
+                        path=dataset_path,
+                        df=pai.DataFrame(transformed_df, config={
+                            "description": description,
+                            "columns": simplified_columns
+                        }),
+                        description=description,
+                        columns=simplified_columns
+                    )
+                    
+                    logger.info("✅ 第一级回退成功，使用简化配置创建语义DataFrame")
+                    return semantic_df
+                    
+                except Exception as fallback1_error:
+                    logger.error(f"❌ 第一级回退失败: {fallback1_error}")
+                    
+                    # 第二级回退：使用传统方法
+                    try:
+                        logger.info("🔄 尝试第二级回退：使用传统create_semantic_dataframe...")
+                        return DataAnalyzer.create_semantic_dataframe(file_path)
+                        
+                    except Exception as fallback2_error:
+                        logger.error(f"❌ 第二级回退失败: {fallback2_error}")
+                        
+                        # 最终回退：返回基础DataFrame
+                        logger.info("🔄 使用最终回退：返回基础DataFrame...")
+                        raw_df = DataAnalyzer.load_data(file_path)
+                        return pai.DataFrame(raw_df)
             
         except Exception as e:
             logger.error(f"❌ 创建增强语义数据框失败: {e}")
-            # 回退到基础模式
-            return DataAnalyzer.create_semantic_dataframe_from_config(file_path, dataset_id, db)
+            # 最终回退：确保永远不返回None
+            try:
+                logger.info("🔄 执行最终回退策略...")
+                return DataAnalyzer.create_semantic_dataframe(file_path)
+            except Exception as final_error:
+                logger.error(f"❌ 最终回退也失败: {final_error}")
+                # 即使最终回退失败，也要返回一个有效的DataFrame
+                import pandas as pd
+                empty_df = pd.DataFrame({'error': ['数据加载失败']})
+                return pai.DataFrame(empty_df)
  
