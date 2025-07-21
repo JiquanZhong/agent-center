@@ -83,6 +83,7 @@ services:
       - ./config/nginx/mime.types:/etc/nginx/mime.types:ro
       - ./web/demo:/usr/share/nginx/html/ai_center
       - ./web/chat-robot/demo:/usr/share/nginx/html/chat-robot
+      - ./web/single-page/demo:/usr/share/nginx/html/single-page
       - ./log/nginx:/var/log/nginx
       - ./.env:/app/.env
       - ./preview:/app/preview
